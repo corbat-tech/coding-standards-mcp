@@ -145,9 +145,9 @@ export const CodeQualitySchema = z.object({
  */
 export const NamingSchema = z
   .object({
-    general: z.record(z.string()).optional(),
-    suffixes: z.record(z.string()).optional(),
-    testing: z.record(z.string()).optional(),
+    general: z.record(z.string(), z.string()).optional(),
+    suffixes: z.record(z.string(), z.string()).optional(),
+    testing: z.record(z.string(), z.string()).optional(),
   })
   .passthrough()
   .optional();
@@ -194,7 +194,7 @@ export const TestingConfigSchema = z.object({
         .optional(),
     })
     .optional(),
-  patterns: z.record(z.boolean()).optional(),
+  patterns: z.record(z.string(), z.boolean()).optional(),
   testcontainers: z
     .object({
       enabled: z.boolean().default(true),
@@ -237,7 +237,7 @@ export const ObservabilitySchema = z.object({
       structuredLogging: z.boolean().optional(),
       correlationId: z.boolean().optional(),
       mdc: z.array(z.string()).optional(),
-      levels: z.record(z.string()).optional(),
+      levels: z.record(z.string(), z.string()).optional(),
       avoid: z.array(z.string()).optional(),
     })
     .optional(),
@@ -282,7 +282,7 @@ export const ApiDocumentationSchema = z.object({
   tool: z.string().default('SpringDoc OpenAPI'),
   version: z.string().optional(),
   requirements: z.array(z.string()).optional(),
-  annotations: z.record(z.string()).optional(),
+  annotations: z.record(z.string(), z.string()).optional(),
   output: z.array(z.string()).optional(),
 });
 
@@ -369,7 +369,7 @@ export const TechnologySchema = z.object({
   name: z.string(),
   version: z.string().optional(),
   tool: z.string().optional(),
-  specificRules: z.record(z.unknown()).optional(),
+  specificRules: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -479,7 +479,7 @@ export const ProjectConfigSchema = z.object({
       minimumTestCoverage: z.number().optional(),
     })
     .optional(),
-  decisions: z.record(z.string()).optional(),
+  decisions: z.record(z.string(), z.string()).optional(),
   guardrails: z.record(TaskTypeSchema, GuardrailsSchema).optional(),
 });
 

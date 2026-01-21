@@ -49,8 +49,9 @@ export async function withRetry<T>(operation: () => Promise<T>, options: RetryOp
     maxTimeout: opts.maxDelayMs,
     factor: 2,
     onFailedAttempt: opts.verbose
-      ? (error) => {
-          console.error(`Retry attempt ${error.attemptNumber}/${opts.maxAttempts} failed: ${error.message}`);
+      ? (context) => {
+          const errorMessage = context.error instanceof Error ? context.error.message : String(context.error);
+          console.error(`Retry attempt ${context.attemptNumber}/${opts.maxAttempts} failed: ${errorMessage}`);
         }
       : undefined,
   };

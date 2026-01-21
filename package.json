@@ -64,12 +64,12 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "p-retry": "^6.2.0",
+    "p-retry": "^7.1.1",
     "yaml": "^2.3.4",
-    "zod": "^3.22.4"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.0.0",
     "@types/node": "^25.0.9",
     "@vitest/coverage-v8": "^4.0.17",
     "dependency-cruiser": "^16.5.0",

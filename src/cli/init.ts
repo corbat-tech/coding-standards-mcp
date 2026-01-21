@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { access, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
