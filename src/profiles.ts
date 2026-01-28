@@ -118,9 +118,7 @@ export function invalidateCache(): void {
 /**
  * Load a single profile from a YAML file.
  */
-async function loadProfileFromFile(
-  filePath: string
-): Promise<{ id: string; profile: Profile } | null> {
+async function loadProfileFromFile(filePath: string): Promise<{ id: string; profile: Profile } | null> {
   try {
     const fileStat = await stat(filePath);
     if (fileStat.isDirectory()) return null;
@@ -627,108 +625,118 @@ function formatObservabilitySection(profile: Profile): string[] {
   return lines;
 }
 
-function formatRemainingProfileSections(profile: Profile): string[] {
-  const lines: string[] = [];
-
-  // API Documentation
-  if (profile.apiDocumentation?.enabled) {
-    lines.push('## API Documentation', '', `- Tool: ${profile.apiDocumentation.tool}`);
-    if (profile.apiDocumentation.version) lines.push(`- Version: ${profile.apiDocumentation.version}`);
-    if (profile.apiDocumentation.requirements) {
-      lines.push('', '**Requirements:**', ...profile.apiDocumentation.requirements.map((r) => `- ${r}`));
-    }
-    if (profile.apiDocumentation.output) {
-      lines.push('', '**Output:**', ...profile.apiDocumentation.output.map((o) => `- ${o}`));
-    }
-    lines.push('');
+function formatApiDocSection(profile: Profile): string[] {
+  if (!profile.apiDocumentation?.enabled) return [];
+  const lines: string[] = ['## API Documentation', '', `- Tool: ${profile.apiDocumentation.tool}`];
+  if (profile.apiDocumentation.version) lines.push(`- Version: ${profile.apiDocumentation.version}`);
+  if (profile.apiDocumentation.requirements) {
+    lines.push('', '**Requirements:**', ...profile.apiDocumentation.requirements.map((r) => `- ${r}`));
   }
-
-  // Security
-  if (profile.security) {
-    lines.push('## Security', '');
-    if (profile.security.authentication) {
-      lines.push(`- Authentication: ${profile.security.authentication.method || 'N/A'}`);
-    }
-    if (profile.security.authorization) {
-      lines.push(
-        `- Authorization: ${profile.security.authorization.method || 'N/A'} (${profile.security.authorization.framework || 'N/A'})`
-      );
-    }
-    if (profile.security.practices) {
-      lines.push('', '**Practices:**', ...profile.security.practices.map((p) => `- ${p}`));
-    }
-    lines.push('');
+  if (profile.apiDocumentation.output) {
+    lines.push('', '**Output:**', ...profile.apiDocumentation.output.map((o) => `- ${o}`));
   }
-
-  // Error Handling
-  if (profile.errorHandling) {
-    lines.push('## Error Handling', '', `- Format: ${profile.errorHandling.format}`);
-    if (profile.errorHandling.globalHandler) lines.push(`- Global Handler: ${profile.errorHandling.globalHandler}`);
-    if (profile.errorHandling.customExceptions?.domain) {
-      lines.push('', '**Domain Exceptions:**', ...profile.errorHandling.customExceptions.domain.map((e) => `- ${e}`));
-    }
-    if (profile.errorHandling.customExceptions?.application) {
-      lines.push(
-        '',
-        '**Application Exceptions:**',
-        ...profile.errorHandling.customExceptions.application.map((e) => `- ${e}`)
-      );
-    }
-    lines.push('');
-  }
-
-  // Database
-  if (profile.database && Object.keys(profile.database).length > 0) {
-    lines.push('## Database', '');
-    const db = profile.database as Record<string, unknown>;
-    const migrations = db.migrations as Record<string, unknown> | undefined;
-    const auditing = db.auditing as Record<string, unknown> | undefined;
-    const softDelete = db.softDelete as Record<string, unknown> | undefined;
-
-    if (migrations) {
-      if (migrations.tool) lines.push(`- Migrations: ${migrations.tool}`);
-      if (migrations.naming) lines.push(`- Naming: ${migrations.naming}`);
-    }
-    if (auditing?.enabled) {
-      const fields = auditing.fields as string[] | undefined;
-      lines.push(`- Auditing: enabled (fields: ${fields?.join(', ') || 'N/A'})`);
-    }
-    if (softDelete?.recommended) {
-      lines.push(`- Soft Delete: recommended (field: ${softDelete.field || 'deletedAt'})`);
-    }
-    // Handle additional database fields dynamically
-    if (db.orm) lines.push(`- ORM: ${db.orm}`);
-    if (db.driver) lines.push(`- Driver: ${db.driver}`);
-    lines.push('');
-  }
-
-  // Mapping
-  if (profile.mapping) {
-    lines.push('## Object Mapping', '', `- Tool: ${profile.mapping.tool}`);
-    if (profile.mapping.componentModel) lines.push(`- Component Model: ${profile.mapping.componentModel}`);
-    if (profile.mapping.patterns) {
-      lines.push('', '**Patterns:**', ...profile.mapping.patterns.map((p) => `- ${p}`));
-    }
-    lines.push('');
-  }
-
-  // Technologies
-  if (profile.technologies?.length) {
-    lines.push('## Technologies', '');
-    for (const tech of profile.technologies) {
-      lines.push(`### ${tech.name}${tech.version ? ` (${tech.version})` : ''}`);
-      if (tech.tool) lines.push(`Tool: ${tech.tool}`);
-      if (tech.specificRules && Object.keys(tech.specificRules).length > 0) {
-        lines.push('**Rules:**');
-        for (const [key, value] of Object.entries(tech.specificRules)) {
-          lines.push(`- ${key}: ${value}`);
-        }
-      }
-      lines.push('');
-    }
-  }
-
+  lines.push('');
   return lines;
+}
+
+function formatSecuritySection(profile: Profile): string[] {
+  if (!profile.security) return [];
+  const lines: string[] = ['## Security', ''];
+  if (profile.security.authentication) {
+    lines.push(`- Authentication: ${profile.security.authentication.method || 'N/A'}`);
+  }
+  if (profile.security.authorization) {
+    lines.push(
+      `- Authorization: ${profile.security.authorization.method || 'N/A'} (${profile.security.authorization.framework || 'N/A'})`
+    );
+  }
+  if (profile.security.practices) {
+    lines.push('', '**Practices:**', ...profile.security.practices.map((p) => `- ${p}`));
+  }
+  lines.push('');
+  return lines;
+}
+
+function formatErrorHandlingSection(profile: Profile): string[] {
+  if (!profile.errorHandling) return [];
+  const lines: string[] = ['## Error Handling', '', `- Format: ${profile.errorHandling.format}`];
+  if (profile.errorHandling.globalHandler) lines.push(`- Global Handler: ${profile.errorHandling.globalHandler}`);
+  if (profile.errorHandling.customExceptions?.domain) {
+    lines.push('', '**Domain Exceptions:**', ...profile.errorHandling.customExceptions.domain.map((e) => `- ${e}`));
+  }
+  if (profile.errorHandling.customExceptions?.application) {
+    lines.push(
+      '',
+      '**Application Exceptions:**',
+      ...profile.errorHandling.customExceptions.application.map((e) => `- ${e}`)
+    );
+  }
+  lines.push('');
+  return lines;
+}
+
+function formatDatabaseSection(profile: Profile): string[] {
+  if (!profile.database || Object.keys(profile.database).length === 0) return [];
+  const lines: string[] = ['## Database', ''];
+  const db = profile.database as Record<string, unknown>;
+  const migrations = db.migrations as Record<string, unknown> | undefined;
+  const auditing = db.auditing as Record<string, unknown> | undefined;
+  const softDelete = db.softDelete as Record<string, unknown> | undefined;
+
+  if (migrations) {
+    if (migrations.tool) lines.push(`- Migrations: ${migrations.tool}`);
+    if (migrations.naming) lines.push(`- Naming: ${migrations.naming}`);
+  }
+  if (auditing?.enabled) {
+    const fields = auditing.fields as string[] | undefined;
+    lines.push(`- Auditing: enabled (fields: ${fields?.join(', ') || 'N/A'})`);
+  }
+  if (softDelete?.recommended) {
+    lines.push(`- Soft Delete: recommended (field: ${softDelete.field || 'deletedAt'})`);
+  }
+  if (db.orm) lines.push(`- ORM: ${db.orm}`);
+  if (db.driver) lines.push(`- Driver: ${db.driver}`);
+  lines.push('');
+  return lines;
+}
+
+function formatMappingSection(profile: Profile): string[] {
+  if (!profile.mapping) return [];
+  const lines: string[] = ['## Object Mapping', '', `- Tool: ${profile.mapping.tool}`];
+  if (profile.mapping.componentModel) lines.push(`- Component Model: ${profile.mapping.componentModel}`);
+  if (profile.mapping.patterns) {
+    lines.push('', '**Patterns:**', ...profile.mapping.patterns.map((p) => `- ${p}`));
+  }
+  lines.push('');
+  return lines;
+}
+
+function formatTechnologiesSection(profile: Profile): string[] {
+  if (!profile.technologies?.length) return [];
+  const lines: string[] = ['## Technologies', ''];
+  for (const tech of profile.technologies) {
+    lines.push(`### ${tech.name}${tech.version ? ` (${tech.version})` : ''}`);
+    if (tech.tool) lines.push(`Tool: ${tech.tool}`);
+    if (tech.specificRules && Object.keys(tech.specificRules).length > 0) {
+      lines.push('**Rules:**');
+      for (const [key, value] of Object.entries(tech.specificRules)) {
+        lines.push(`- ${key}: ${value}`);
+      }
+    }
+    lines.push('');
+  }
+  return lines;
+}
+
+function formatRemainingProfileSections(profile: Profile): string[] {
+  return [
+    ...formatApiDocSection(profile),
+    ...formatSecuritySection(profile),
+    ...formatErrorHandlingSection(profile),
+    ...formatDatabaseSection(profile),
+    ...formatMappingSection(profile),
+    ...formatTechnologiesSection(profile),
+  ];
 }
 
 /**

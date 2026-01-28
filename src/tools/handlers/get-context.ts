@@ -1,4 +1,10 @@
-import { classifyTaskType, detectProjectStack, getGuardrails, getProjectRules, loadProjectConfig } from '../../agent.js';
+import {
+  classifyTaskType,
+  detectProjectStack,
+  getGuardrails,
+  getProjectRules,
+  loadProjectConfig,
+} from '../../agent.js';
 import { config } from '../../config.js';
 import { getProfile, listProfiles } from '../../profiles.js';
 import { GetContextSchema } from '../schemas.js';

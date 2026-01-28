@@ -35,11 +35,7 @@ export class CorbatError extends Error {
  */
 export class ProfileNotFoundError extends CorbatError {
   constructor(profileId: string, availableProfiles: string[] = []) {
-    super(
-      `Profile "${profileId}" not found`,
-      'PROFILE_NOT_FOUND',
-      { profileId, availableProfiles }
-    );
+    super(`Profile "${profileId}" not found`, 'PROFILE_NOT_FOUND', { profileId, availableProfiles });
     this.name = 'ProfileNotFoundError';
   }
 }
@@ -49,11 +45,7 @@ export class ProfileNotFoundError extends CorbatError {
  */
 export class InvalidConfigError extends CorbatError {
   constructor(path: string, validationErrors: string[]) {
-    super(
-      `Invalid configuration at ${path}`,
-      'INVALID_CONFIG',
-      { path, validationErrors }
-    );
+    super(`Invalid configuration at ${path}`, 'INVALID_CONFIG', { path, validationErrors });
     this.name = 'InvalidConfigError';
   }
 }
@@ -63,11 +55,7 @@ export class InvalidConfigError extends CorbatError {
  */
 export class StackDetectionError extends CorbatError {
   constructor(projectDir: string, reason: string) {
-    super(
-      `Could not detect stack in ${projectDir}: ${reason}`,
-      'STACK_DETECTION_FAILED',
-      { projectDir, reason }
-    );
+    super(`Could not detect stack in ${projectDir}: ${reason}`, 'STACK_DETECTION_FAILED', { projectDir, reason });
     this.name = 'StackDetectionError';
   }
 }
@@ -77,11 +65,7 @@ export class StackDetectionError extends CorbatError {
  */
 export class InvalidGuardrailError extends CorbatError {
   constructor(taskType: string, reason: string) {
-    super(
-      `Invalid guardrail for task type "${taskType}": ${reason}`,
-      'INVALID_GUARDRAIL',
-      { taskType, reason }
-    );
+    super(`Invalid guardrail for task type "${taskType}": ${reason}`, 'INVALID_GUARDRAIL', { taskType, reason });
     this.name = 'InvalidGuardrailError';
   }
 }
@@ -91,11 +75,7 @@ export class InvalidGuardrailError extends CorbatError {
  */
 export class ToolInputError extends CorbatError {
   constructor(toolName: string, reason: string, input?: unknown) {
-    super(
-      `Invalid input for tool "${toolName}": ${reason}`,
-      'TOOL_INPUT_ERROR',
-      { toolName, reason, input }
-    );
+    super(`Invalid input for tool "${toolName}": ${reason}`, 'TOOL_INPUT_ERROR', { toolName, reason, input });
     this.name = 'ToolInputError';
   }
 }
@@ -105,11 +85,7 @@ export class ToolInputError extends CorbatError {
  */
 export class ResourceNotFoundError extends CorbatError {
   constructor(resourceUri: string) {
-    super(
-      `Resource not found: ${resourceUri}`,
-      'RESOURCE_NOT_FOUND',
-      { resourceUri }
-    );
+    super(`Resource not found: ${resourceUri}`, 'RESOURCE_NOT_FOUND', { resourceUri });
     this.name = 'ResourceNotFoundError';
   }
 }

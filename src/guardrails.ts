@@ -2,11 +2,11 @@
  * Guardrails loader module.
  * Loads guardrails from YAML files for better maintainability and customization.
  */
-import { readFile, readdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
-import { type Guardrails, type TaskType } from './types.js';
+import type { Guardrails, TaskType } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -106,10 +106,7 @@ export async function loadGuardrails(
 /**
  * Gets guardrails for a specific task type.
  */
-export async function getGuardrails(
-  taskType: TaskType,
-  guardrailsDir?: string
-): Promise<ExtendedGuardrails> {
+export async function getGuardrails(taskType: TaskType, guardrailsDir?: string): Promise<ExtendedGuardrails> {
   const allGuardrails = await loadGuardrails(guardrailsDir);
   return allGuardrails[taskType] || getFallbackGuardrails()[taskType];
 }

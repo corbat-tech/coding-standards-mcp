@@ -9,6 +9,7 @@
 
 import { logger } from '../logger.js';
 import { recordError, recordToolCall } from '../metrics.js';
+import type { ToolName } from './definitions.js';
 import {
   handleGetContext,
   handleHealth,
@@ -17,11 +18,10 @@ import {
   handleSearch,
   handleValidate,
 } from './handlers/index.js';
-import type { ToolName } from './definitions.js';
 
+export type { ToolName } from './definitions.js';
 // Re-export definitions and schemas
 export { tools } from './definitions.js';
-export type { ToolName } from './definitions.js';
 export * from './schemas.js';
 
 /**

@@ -5,11 +5,13 @@ import { InitSchema } from '../schemas.js';
 /**
  * Generate suggested .corbat.json configuration based on detected stack.
  */
-function generateSuggestedConfig(stack: {
-  language: string;
-  framework?: string;
-  suggestedProfile: string;
-} | null): Record<string, unknown> {
+function generateSuggestedConfig(
+  stack: {
+    language: string;
+    framework?: string;
+    suggestedProfile: string;
+  } | null
+): Record<string, unknown> {
   if (!stack) {
     return {
       profile: 'minimal',
@@ -80,12 +82,7 @@ export async function handleInit(
   // Generate suggested config
   const suggestedConfig = generateSuggestedConfig(stack);
 
-  const lines: string[] = [
-    '# Corbat MCP Configuration',
-    '',
-    '## Detected Stack',
-    '',
-  ];
+  const lines: string[] = ['# Corbat MCP Configuration', '', '## Detected Stack', ''];
 
   if (stack) {
     lines.push(`- **Language:** ${stack.language}`);

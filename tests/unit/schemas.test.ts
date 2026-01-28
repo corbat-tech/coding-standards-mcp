@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GetContextSchema, ValidateSchema, SearchSchema, InitSchema } from '../../src/tools/schemas.js';
 import { ZodError } from 'zod';
+import { GetContextSchema, InitSchema, SearchSchema, ValidateSchema } from '../../src/tools/schemas.js';
 
 describe('Tool Schemas Validation', () => {
   describe('GetContextSchema', () => {

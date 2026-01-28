@@ -172,87 +172,89 @@ export const NamingSchema = z
  * Testing configuration schema.
  * Supports various testing frameworks and patterns across languages.
  */
-export const TestingConfigSchema = z.object({
-  framework: z.string().default('JUnit5'),
-  assertionLibrary: z.string().default('AssertJ'),
-  mockingLibrary: z.string().default('Mockito'),
-  propertyTesting: z.string().optional(), // Rust: proptest, etc.
-  goldenTesting: z.string().optional(), // Flutter: golden_toolkit
-  coroutineTesting: z.string().optional(), // Kotlin: kotlinx-coroutines-test
-  types: z
-    .object({
-      unit: z
-        .object({
-          suffix: z.string().default('Test'),
-          location: z.string().optional(),
-          coverage: z.number().optional(),
-          fastExecution: z.boolean().optional(),
-          mavenPhase: z.string().optional(),
-          patterns: z.array(z.string()).optional(),
-          parallel: z.boolean().optional(),
-          annotations: z.array(z.string()).optional(),
-        })
-        .optional(),
-      integration: z
-        .object({
-          suffix: z.string().default('IT'),
-          location: z.string().optional(),
-          mavenPlugin: z.string().optional(),
-          mavenPhase: z.string().optional(),
-          useTestcontainers: z.boolean().optional(),
-          useWebTestClient: z.boolean().optional(),
-          useWebApplicationFactory: z.boolean().optional(),
-          useRespawn: z.boolean().optional(),
-          annotations: z.array(z.string()).optional(),
-          patterns: z.array(z.string()).optional(),
-        })
-        .optional(),
-      e2e: z
-        .object({
-          suffix: z.string().optional(),
-          location: z.string().optional(),
-          framework: z.string().optional(),
-        })
-        .optional(),
-      architecture: z
-        .object({
-          tool: z.string().default('ArchUnit'),
-          recommended: z.boolean().default(true),
-          location: z.string().optional(),
-        })
-        .optional(),
-      widget: z
-        .object({
-          location: z.string().optional(),
-          coverage: z.number().optional(),
-          patterns: z.array(z.string()).optional(),
-          example: z.string().optional(),
-        })
-        .optional(),
-      golden: z
-        .object({
-          enabled: z.boolean().optional(),
-          location: z.string().optional(),
-          example: z.string().optional(),
-        })
-        .optional(),
-      documentation: z
-        .object({
-          enabled: z.boolean().optional(),
-          runWithTests: z.boolean().optional(),
-          example: z.string().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-  patterns: z.record(z.string(), z.unknown()).optional(),
-  testcontainers: z
-    .object({
-      enabled: z.boolean().default(true),
-      containers: z.array(z.string()).optional(),
-    })
-    .optional(),
-}).passthrough();
+export const TestingConfigSchema = z
+  .object({
+    framework: z.string().default('JUnit5'),
+    assertionLibrary: z.string().default('AssertJ'),
+    mockingLibrary: z.string().default('Mockito'),
+    propertyTesting: z.string().optional(), // Rust: proptest, etc.
+    goldenTesting: z.string().optional(), // Flutter: golden_toolkit
+    coroutineTesting: z.string().optional(), // Kotlin: kotlinx-coroutines-test
+    types: z
+      .object({
+        unit: z
+          .object({
+            suffix: z.string().default('Test'),
+            location: z.string().optional(),
+            coverage: z.number().optional(),
+            fastExecution: z.boolean().optional(),
+            mavenPhase: z.string().optional(),
+            patterns: z.array(z.string()).optional(),
+            parallel: z.boolean().optional(),
+            annotations: z.array(z.string()).optional(),
+          })
+          .optional(),
+        integration: z
+          .object({
+            suffix: z.string().default('IT'),
+            location: z.string().optional(),
+            mavenPlugin: z.string().optional(),
+            mavenPhase: z.string().optional(),
+            useTestcontainers: z.boolean().optional(),
+            useWebTestClient: z.boolean().optional(),
+            useWebApplicationFactory: z.boolean().optional(),
+            useRespawn: z.boolean().optional(),
+            annotations: z.array(z.string()).optional(),
+            patterns: z.array(z.string()).optional(),
+          })
+          .optional(),
+        e2e: z
+          .object({
+            suffix: z.string().optional(),
+            location: z.string().optional(),
+            framework: z.string().optional(),
+          })
+          .optional(),
+        architecture: z
+          .object({
+            tool: z.string().default('ArchUnit'),
+            recommended: z.boolean().default(true),
+            location: z.string().optional(),
+          })
+          .optional(),
+        widget: z
+          .object({
+            location: z.string().optional(),
+            coverage: z.number().optional(),
+            patterns: z.array(z.string()).optional(),
+            example: z.string().optional(),
+          })
+          .optional(),
+        golden: z
+          .object({
+            enabled: z.boolean().optional(),
+            location: z.string().optional(),
+            example: z.string().optional(),
+          })
+          .optional(),
+        documentation: z
+          .object({
+            enabled: z.boolean().optional(),
+            runWithTests: z.boolean().optional(),
+            example: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+    patterns: z.record(z.string(), z.unknown()).optional(),
+    testcontainers: z
+      .object({
+        enabled: z.boolean().default(true),
+        containers: z.array(z.string()).optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
 
 /**
  * HTTP Clients configuration schema.
