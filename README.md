@@ -83,19 +83,89 @@ Corbat: ✓ Detected: Java 21, Spring Boot 3, Maven
 
 ---
 
-## Benchmark Results
+## Benchmark Results v2.0
 
-Tested across 20 real-world scenarios:
+### Overall Impact
 
-| Metric | Without | With | Impact |
-|--------|:-------:|:----:|:------:|
-| **Quality Score** | 63/100 | 93/100 | +48% |
-| **Code Smells** | 43 | 0 | -100% |
-| **SOLID Compliance** | 50% | 89% | +78% |
-| **Tests Generated** | 219 | 558 | +155% |
-| **SonarQube** | FAIL | PASS | Fixed |
+<div align="center">
 
-[View detailed benchmark report with code samples](docs/comparison-tests/RESULTS-REPORT.md)
+| Metric | Without Corbat | With Corbat | **Improvement** |
+|--------|:--------------:|:-----------:|:---------------:|
+| **Quality Score** | 4.6/10 | 7.7/10 | **+67%** |
+| **Custom Errors** | 3 | 18 | **+500%** |
+| **Interfaces/Ports** | 19 | 41 | **+116%** |
+| **Files (modularity)** | 55 | 95 | **+73%** |
+
+</div>
+
+### By Complexity Level
+
+| Category | Scenarios | Without | With | **Improvement** |
+|----------|-----------|:-------:|:----:|:---------------:|
+| **Basic** | UserService, REST API, React Form | 4.0 | 7.6 | **+90%** |
+| **Intermediate** | Kafka Consumer, FastAPI, Go HTTP | 4.3 | 7.2 | **+67%** |
+| **Advanced** | Saga, Circuit Breaker, Event Sourcing | 5.6 | 8.2 | **+46%** |
+
+### Pattern Detection
+
+| Pattern | Without Corbat | With Corbat |
+|---------|:--------------:|:-----------:|
+| Hexagonal Architecture | 0/10 scenarios | **10/10** |
+| Repository Pattern | 2/10 | **7/10** |
+| Custom Error Types | 1/10 | **8/10** |
+| Dependency Injection | 2/10 | **10/10** |
+| Saga Pattern | 0/10 | **1/1** (when needed) |
+
+### Real Example: Saga Pattern (Scenario 07)
+
+<table>
+<tr>
+<th>Without Corbat</th>
+<th>With Corbat</th>
+</tr>
+<tr>
+<td>
+
+```java
+// Hardcoded rollback, not extensible
+try {
+  targetAccount.credit(amount);
+} catch (Exception e) {
+  rollbackDebit(sourceAccount, amount);
+  throw new TransferException(...);
+}
+```
+
+</td>
+<td>
+
+```java
+// Reusable Saga Pattern
+public interface SagaStep<T> {
+  void execute(T context);
+  void compensate(T context);
+}
+
+public class SagaOrchestrator<T> {
+  public void execute(T context) {
+    for (SagaStep<T> step : steps) {
+      step.execute(context);
+      executedSteps.add(step);
+    }
+  }
+  // Auto-rollback on failure
+}
+```
+
+</td>
+</tr>
+<tr>
+<td>9 files, 292 LOC, manual rollback</td>
+<td><b>17 files, 707 LOC, orchestrated compensation</b></td>
+</tr>
+</table>
+
+[View full benchmark analysis with 10 scenarios](benchmarks/v2/ANALYSIS.md)
 
 ---
 
@@ -105,36 +175,45 @@ Tested across 20 real-world scenarios:
 
 ```typescript
 class UserService {
-  private users: User[] = [];
+  private users: Map<string, User> = new Map();
 
-  getUser(id: string) {
-    return this.users.find(u => u.id === id);
+  getById(id: string): User | undefined {
+    return this.users.get(id);
   }
 
-  createUser(name: string, email: string) {
-    const user = { id: Date.now(), name, email };
-    this.users.push(user);
+  createUser(input: CreateUserInput): User {
+    if (!input.name) throw new Error('Name is required');
+    const user = { id: uuidv4(), ...input };
+    this.users.set(user.id, user);
     return user;
   }
 }
-// Problems: returns undefined, no validation, no DI, no tests
+// ✗ Returns undefined  ✗ Generic errors  ✗ No DI  ✗ Hardcoded storage
 ```
 
 ### After: With Corbat MCP
 
 ```typescript
+// Port (interface)
 interface UserRepository {
-  findById(id: UserId): User | null;
+  findById(id: string): User | null;
   save(user: User): void;
+  existsByEmail(email: string): boolean;
 }
 
+// Custom errors
+class UserNotFoundError extends Error { /*...*/ }
+class UserAlreadyExistsError extends Error { /*...*/ }
+class InvalidUserInputError extends Error { /*...*/ }
+
+// Service with DI
 class UserService {
   constructor(
     private readonly repository: UserRepository,
     private readonly idGenerator: IdGenerator
   ) {}
 
-  getUser(id: UserId): User {
+  getUserById(id: string): User {
     const user = this.repository.findById(id);
     if (!user) throw new UserNotFoundError(id);
     return user;
@@ -142,17 +221,16 @@ class UserService {
 
   createUser(input: CreateUserInput): User {
     this.validateInput(input);
-    const user = User.create(
-      this.idGenerator.generate(),
-      input.name.trim(),
-      input.email.toLowerCase()
-    );
+    this.ensureEmailNotTaken(input.email);
+    const user = createUser(this.idGenerator.generate(), input);
     this.repository.save(user);
     return user;
   }
 }
-// ✓ Dependency injection ✓ Custom errors ✓ Validation ✓ 15 tests
+// ✓ Repository interface  ✓ 3 custom errors  ✓ DI  ✓ 11 tests  ✓ Testable
 ```
+
+**Result:** 3 files → 7 files | 129 LOC → 308 LOC | 0 interfaces → 4 interfaces | 0 custom errors → 3
 
 ---
 
@@ -253,7 +331,7 @@ Your Prompt ──▶ Corbat MCP ──▶ AI + Standards
 | [Setup Guide](docs/setup.md) | Installation for all 25+ tools |
 | [Templates](docs/templates.md) | Ready-to-use `.corbat.json` configurations |
 | [Compatibility](docs/compatibility.md) | Full list of supported tools |
-| [Benchmark Report](docs/comparison-tests/RESULTS-REPORT.md) | 20 real-world tests with code samples |
+| [Benchmark v2 Analysis](benchmarks/v2/ANALYSIS.md) | 10 scenarios with detailed comparison |
 | [API Reference](docs/full-documentation.md) | Tools, prompts, and configuration |
 
 ---
@@ -261,6 +339,12 @@ Your Prompt ──▶ Corbat MCP ──▶ AI + Standards
 <div align="center">
 
 **Stop fixing AI code. Start shipping it.**
+
+| Without Corbat | With Corbat |
+|:--------------:|:-----------:|
+| 4.6/10 quality | **7.7/10 quality** |
+| 3 custom errors | **18 custom errors** |
+| 0% hexagonal | **100% hexagonal** |
 
 *Recommended by [corbat-tech](https://corbat.tech) — We use Claude Code internally, but Corbat MCP works with any MCP-compatible tool.*
 

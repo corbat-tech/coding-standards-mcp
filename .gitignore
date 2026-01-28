@@ -29,3 +29,6 @@ npm-debug.log*
 # Temporary files
 tmp/
 temp/
+
+# Local MCP config
+.mcp.json

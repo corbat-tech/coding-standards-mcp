@@ -1,0 +1,585 @@
+{
+  "version": "2.0",
+  "date": "2026-01-28",
+  "scenarios": {
+    "01-user-service": {
+      "category": "basic",
+      "stack": "typescript",
+      "with_mcp": {
+        "loc": 308,
+        "tests": 11,
+        "files": 7,
+        "interfaces": 4,
+        "custom_errors": 3,
+        "patterns": {
+          "interface": true,
+          "repository": true,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true
+        },
+        "qualitative": {
+          "architecture": 8,
+          "testing": 7,
+          "error_handling": 8,
+          "di": 9,
+          "solid": 8,
+          "total": 7.9
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 129,
+        "tests": 8,
+        "files": 3,
+        "interfaces": 2,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false
+        },
+        "qualitative": {
+          "architecture": 3,
+          "testing": 6,
+          "error_handling": 2,
+          "di": 2,
+          "solid": 3,
+          "total": 3.3
+        }
+      }
+    },
+    "02-rest-api": {
+      "category": "basic",
+      "stack": "nodejs",
+      "with_mcp": {
+        "loc": 356,
+        "tests": 9,
+        "files": 7,
+        "interfaces": 6,
+        "custom_errors": 2,
+        "patterns": {
+          "interface": true,
+          "repository": true,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true
+        },
+        "qualitative": {
+          "architecture": 8,
+          "testing": 7,
+          "error_handling": 8,
+          "di": 9,
+          "solid": 8,
+          "total": 7.9
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 157,
+        "tests": 7,
+        "files": 4,
+        "interfaces": 2,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false
+        },
+        "qualitative": {
+          "architecture": 4,
+          "testing": 6,
+          "error_handling": 2,
+          "di": 3,
+          "solid": 4,
+          "total": 3.9
+        }
+      }
+    },
+    "03-react-form": {
+      "category": "basic",
+      "stack": "react",
+      "with_mcp": {
+        "loc": 499,
+        "tests": 13,
+        "files": 5,
+        "interfaces": 6,
+        "custom_errors": 1,
+        "patterns": {
+          "interface": true,
+          "repository": false,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true
+        },
+        "qualitative": {
+          "architecture": 7,
+          "testing": 8,
+          "error_handling": 6,
+          "di": 7,
+          "solid": 7,
+          "total": 7.0
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 214,
+        "tests": 9,
+        "files": 2,
+        "interfaces": 3,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false
+        },
+        "qualitative": {
+          "architecture": 5,
+          "testing": 7,
+          "error_handling": 2,
+          "di": 4,
+          "solid": 5,
+          "total": 4.7
+        }
+      }
+    },
+    "04-kafka-consumer": {
+      "category": "intermediate",
+      "stack": "java",
+      "with_mcp": {
+        "loc": 474,
+        "tests": 6,
+        "files": 13,
+        "interfaces": 4,
+        "custom_errors": 2,
+        "patterns": {
+          "interface": true,
+          "repository": true,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true,
+          "dlq": true,
+          "events": true
+        },
+        "qualitative": {
+          "architecture": 8,
+          "testing": 6,
+          "error_handling": 8,
+          "di": 9,
+          "solid": 8,
+          "total": 7.8
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 496,
+        "tests": 6,
+        "files": 7,
+        "interfaces": 1,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": true,
+          "custom_errors": false,
+          "di": true,
+          "hexagonal": false,
+          "dlq": false,
+          "events": true
+        },
+        "qualitative": {
+          "architecture": 5,
+          "testing": 5,
+          "error_handling": 2,
+          "di": 4,
+          "solid": 5,
+          "total": 4.3
+        }
+      }
+    },
+    "05-fastapi-async": {
+      "category": "intermediate",
+      "stack": "python",
+      "with_mcp": {
+        "loc": 606,
+        "tests": 14,
+        "files": 12,
+        "interfaces": 0,
+        "custom_errors": 2,
+        "patterns": {
+          "interface": true,
+          "repository": true,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true
+        },
+        "qualitative": {
+          "architecture": 9,
+          "testing": 7,
+          "error_handling": 7,
+          "di": 8,
+          "solid": 8,
+          "total": 7.9
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 289,
+        "tests": 16,
+        "files": 6,
+        "interfaces": 0,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false
+        },
+        "qualitative": {
+          "architecture": 4,
+          "testing": 8,
+          "error_handling": 2,
+          "di": 3,
+          "solid": 4,
+          "total": 4.3
+        }
+      }
+    },
+    "06-go-repository": {
+      "category": "intermediate",
+      "stack": "go",
+      "with_mcp": {
+        "loc": 823,
+        "tests": 0,
+        "files": 7,
+        "interfaces": 0,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": true,
+          "repository": true,
+          "custom_errors": false,
+          "di": true,
+          "hexagonal": true
+        },
+        "qualitative": {
+          "architecture": 8,
+          "testing": 0,
+          "error_handling": 5,
+          "di": 8,
+          "solid": 7,
+          "total": 5.8
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 614,
+        "tests": 0,
+        "files": 6,
+        "interfaces": 0,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false
+        },
+        "qualitative": {
+          "architecture": 6,
+          "testing": 0,
+          "error_handling": 4,
+          "di": 5,
+          "solid": 5,
+          "total": 4.2
+        }
+      }
+    },
+    "07-saga-pattern": {
+      "category": "advanced",
+      "stack": "java",
+      "with_mcp": {
+        "loc": 707,
+        "tests": 12,
+        "files": 17,
+        "interfaces": 3,
+        "custom_errors": 4,
+        "patterns": {
+          "interface": true,
+          "repository": true,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true,
+          "compensation": true,
+          "orchestration": true,
+          "saga": true
+        },
+        "qualitative": {
+          "architecture": 10,
+          "testing": 7,
+          "error_handling": 8,
+          "di": 9,
+          "solid": 9,
+          "total": 8.7
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 292,
+        "tests": 13,
+        "files": 9,
+        "interfaces": 1,
+        "custom_errors": 3,
+        "patterns": {
+          "interface": false,
+          "repository": true,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": false,
+          "compensation": true,
+          "orchestration": false,
+          "saga": false
+        },
+        "qualitative": {
+          "architecture": 5,
+          "testing": 7,
+          "error_handling": 6,
+          "di": 6,
+          "solid": 5,
+          "total": 5.7
+        }
+      }
+    },
+    "08-circuit-breaker": {
+      "category": "advanced",
+      "stack": "typescript",
+      "with_mcp": {
+        "loc": 467,
+        "tests": 15,
+        "files": 6,
+        "interfaces": 5,
+        "custom_errors": 2,
+        "patterns": {
+          "interface": true,
+          "repository": false,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true,
+          "state_machine": true,
+          "metrics": true
+        },
+        "qualitative": {
+          "architecture": 8,
+          "testing": 8,
+          "error_handling": 8,
+          "di": 9,
+          "solid": 8,
+          "total": 8.1
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 281,
+        "tests": 11,
+        "files": 3,
+        "interfaces": 3,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false,
+          "state_machine": true,
+          "metrics": false
+        },
+        "qualitative": {
+          "architecture": 6,
+          "testing": 7,
+          "error_handling": 3,
+          "di": 5,
+          "solid": 6,
+          "total": 5.4
+        }
+      }
+    },
+    "09-event-sourcing": {
+      "category": "advanced",
+      "stack": "java",
+      "with_mcp": {
+        "loc": 747,
+        "tests": 10,
+        "files": 15,
+        "interfaces": 1,
+        "custom_errors": 2,
+        "patterns": {
+          "interface": true,
+          "repository": true,
+          "custom_errors": true,
+          "di": true,
+          "hexagonal": true,
+          "event_store": true,
+          "projections": true,
+          "aggregate": true,
+          "events": true
+        },
+        "qualitative": {
+          "architecture": 9,
+          "testing": 7,
+          "error_handling": 8,
+          "di": 8,
+          "solid": 9,
+          "total": 8.3
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 477,
+        "tests": 10,
+        "files": 10,
+        "interfaces": 1,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false,
+          "event_store": true,
+          "projections": true,
+          "aggregate": false,
+          "events": true
+        },
+        "qualitative": {
+          "architecture": 6,
+          "testing": 6,
+          "error_handling": 3,
+          "di": 5,
+          "solid": 6,
+          "total": 5.3
+        }
+      }
+    },
+    "10-state-machine": {
+      "category": "advanced",
+      "stack": "react",
+      "with_mcp": {
+        "loc": 824,
+        "tests": 14,
+        "files": 6,
+        "interfaces": 12,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": true,
+          "repository": false,
+          "custom_errors": false,
+          "di": true,
+          "hexagonal": true,
+          "state_transitions": true,
+          "validation": true
+        },
+        "qualitative": {
+          "architecture": 8,
+          "testing": 8,
+          "error_handling": 5,
+          "di": 8,
+          "solid": 8,
+          "total": 7.5
+        },
+        "mcp_invoked": true
+      },
+      "without_mcp": {
+        "loc": 522,
+        "tests": 12,
+        "files": 5,
+        "interfaces": 6,
+        "custom_errors": 0,
+        "patterns": {
+          "interface": false,
+          "repository": false,
+          "custom_errors": false,
+          "di": false,
+          "hexagonal": false,
+          "state_transitions": true,
+          "validation": true
+        },
+        "qualitative": {
+          "architecture": 6,
+          "testing": 7,
+          "error_handling": 4,
+          "di": 6,
+          "solid": 6,
+          "total": 5.8
+        }
+      }
+    }
+  },
+  "totals": {
+    "with_mcp": {
+      "loc": 5811,
+      "tests": 104,
+      "files": 95,
+      "interfaces": 41,
+      "custom_errors": 18
+    },
+    "without_mcp": {
+      "loc": 3471,
+      "tests": 92,
+      "files": 55,
+      "interfaces": 19,
+      "custom_errors": 3
+    },
+    "improvement": {
+      "loc_percent": 67,
+      "tests_percent": 13,
+      "files_percent": 73,
+      "interfaces_percent": 116,
+      "custom_errors_percent": 500
+    }
+  },
+  "summary": {
+    "basic": {
+      "with_mcp_avg": 7.6,
+      "without_mcp_avg": 4.0,
+      "improvement_percent": 90
+    },
+    "intermediate": {
+      "with_mcp_avg": 7.2,
+      "without_mcp_avg": 4.3,
+      "improvement_percent": 67
+    },
+    "advanced": {
+      "with_mcp_avg": 8.2,
+      "without_mcp_avg": 5.6,
+      "improvement_percent": 46
+    },
+    "overall": {
+      "with_mcp_avg": 7.7,
+      "without_mcp_avg": 4.6,
+      "improvement_percent": 67
+    }
+  },
+  "patterns_summary": {
+    "with_mcp": {
+      "hexagonal": 10,
+      "repository": 7,
+      "custom_errors": 8,
+      "di": 10,
+      "events": 2,
+      "saga": 1
+    },
+    "without_mcp": {
+      "hexagonal": 0,
+      "repository": 2,
+      "custom_errors": 1,
+      "di": 2,
+      "events": 2,
+      "saga": 0
+    }
+  }
+}
