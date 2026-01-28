@@ -492,3 +492,617 @@ forms:
 #
 # e2e/                           # End-to-end tests
 # └── specs/
+
+# ----------------------------------------------------------------------------
+# CODE EXAMPLES
+# ----------------------------------------------------------------------------
+codeExamples:
+  standaloneComponent:
+    description: "Modern standalone component with signals"
+    code: |
+      // features/users/user-card.component.ts
+      import { Component, input, output, computed } from '@angular/core';
+      import { RouterLink } from '@angular/router';
+      import type { User } from '@/core/models/user.model';
+
+      @Component({
+        selector: 'app-user-card',
+        standalone: true,
+        imports: [RouterLink],
+        template: `
+          @if (user(); as u) {
+            <article class="user-card" [class.active]="isActive()">
+              <img [src]="u.avatar" [alt]="fullName() + '\\'s avatar'" />
+              <h3>{{ fullName() }}</h3>
+              <p>{{ u.email }}</p>
+              <button (click)="handleSelect()">Select</button>
+              <a [routerLink]="['/users', u.id]">View Profile</a>
+            </article>
+          }
+        `,
+        styles: [`
+          .user-card { @apply p-4 rounded-lg shadow; }
+          .user-card.active { @apply ring-2 ring-primary; }
+        `]
+      })
+      export class UserCardComponent {
+        // Signal-based inputs
+        user = input.required<User>();
+        isActive = input(false);
+
+        // Signal-based output
+        selected = output<string>();
+
+        // Computed signal
+        fullName = computed(() => {
+          const u = this.user();
+          return `${u.firstName} ${u.lastName}`;
+        });
+
+        handleSelect() {
+          this.selected.emit(this.user().id);
+        }
+      }
+
+  signalState:
+    description: "Component state with signals"
+    code: |
+      // features/counter/counter.component.ts
+      import { Component, signal, computed, effect } from '@angular/core';
+
+      @Component({
+        selector: 'app-counter',
+        standalone: true,
+        template: `
+          <div class="counter">
+            <p>Count: {{ count() }}</p>
+            <p>Double: {{ doubleCount() }}</p>
+            <button (click)="increment()">+</button>
+            <button (click)="decrement()">-</button>
+            <button (click)="reset()">Reset</button>
+          </div>
+        `
+      })
+      export class CounterComponent {
+        // Writable signal
+        count = signal(0);
+
+        // Computed signal (derived state)
+        doubleCount = computed(() => this.count() * 2);
+
+        constructor() {
+          // Effect for side effects (logging, localStorage, etc.)
+          effect(() => {
+            console.log(`Count changed to: ${this.count()}`);
+          });
+        }
+
+        increment() {
+          this.count.update(c => c + 1);
+        }
+
+        decrement() {
+          this.count.update(c => c - 1);
+        }
+
+        reset() {
+          this.count.set(0);
+        }
+      }
+
+  service:
+    description: "Injectable service with signals and HttpClient"
+    code: |
+      // core/services/user.service.ts
+      import { Injectable, inject, signal, computed } from '@angular/core';
+      import { HttpClient } from '@angular/common/http';
+      import { toSignal } from '@angular/core/rxjs-interop';
+      import type { User } from '@/core/models/user.model';
+
+      @Injectable({ providedIn: 'root' })
+      export class UserService {
+        private http = inject(HttpClient);
+
+        private usersSignal = signal<User[]>([]);
+        private loadingSignal = signal(false);
+        private errorSignal = signal<Error | null>(null);
+
+        // Public readonly signals
+        readonly users = this.usersSignal.asReadonly();
+        readonly isLoading = this.loadingSignal.asReadonly();
+        readonly error = this.errorSignal.asReadonly();
+
+        // Computed
+        readonly userCount = computed(() => this.usersSignal().length);
+
+        async loadUsers(): Promise<void> {
+          this.loadingSignal.set(true);
+          this.errorSignal.set(null);
+
+          try {
+            const users = await firstValueFrom(
+              this.http.get<User[]>('/api/users')
+            );
+            this.usersSignal.set(users);
+          } catch (error) {
+            this.errorSignal.set(error as Error);
+          } finally {
+            this.loadingSignal.set(false);
+          }
+        }
+
+        getUserById(id: string): User | undefined {
+          return this.usersSignal().find(u => u.id === id);
+        }
+      }
+
+  functionalGuard:
+    description: "Functional route guard"
+    code: |
+      // core/guards/auth.guard.ts
+      import { inject } from '@angular/core';
+      import { Router, type CanActivateFn } from '@angular/router';
+      import { AuthService } from '@/core/services/auth.service';
+
+      export const authGuard: CanActivateFn = (route, state) => {
+        const authService = inject(AuthService);
+        const router = inject(Router);
+
+        if (authService.isAuthenticated()) {
+          return true;
+        }
+
+        // Redirect to login with return URL
+        return router.createUrlTree(['/login'], {
+          queryParams: { returnUrl: state.url }
+        });
+      };
+
+      // Usage in routes
+      export const routes: Routes = [
+        {
+          path: 'dashboard',
+          loadComponent: () => import('./dashboard/dashboard.component'),
+          canActivate: [authGuard]
+        }
+      ];
+
+  functionalInterceptor:
+    description: "Functional HTTP interceptor"
+    code: |
+      // core/interceptors/auth.interceptor.ts
+      import { inject } from '@angular/core';
+      import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+      import { catchError, throwError } from 'rxjs';
+      import { AuthService } from '@/core/services/auth.service';
+      import { Router } from '@angular/router';
+
+      export const authInterceptor: HttpInterceptorFn = (req, next) => {
+        const authService = inject(AuthService);
+        const router = inject(Router);
+
+        const token = authService.token();
+
+        // Add auth header if token exists
+        if (token) {
+          req = req.clone({
+            setHeaders: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+        }
+
+        return next(req).pipe(
+          catchError((error: HttpErrorResponse) => {
+            if (error.status === 401) {
+              authService.logout();
+              router.navigate(['/login']);
+            }
+            return throwError(() => error);
+          })
+        );
+      };
+
+      // Register in app.config.ts
+      export const appConfig: ApplicationConfig = {
+        providers: [
+          provideHttpClient(withInterceptors([authInterceptor]))
+        ]
+      };
+
+  signalStore:
+    description: "NgRx SignalStore for feature state"
+    code: |
+      // features/products/products.store.ts
+      import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
+      import { inject } from '@angular/core';
+      import { ProductService } from './products.service';
+      import type { Product } from '@/core/models/product.model';
+
+      interface ProductsState {
+        products: Product[];
+        selectedId: string | null;
+        isLoading: boolean;
+        error: string | null;
+      }
+
+      const initialState: ProductsState = {
+        products: [],
+        selectedId: null,
+        isLoading: false,
+        error: null
+      };
+
+      export const ProductsStore = signalStore(
+        withState(initialState),
+
+        withComputed((store) => ({
+          selectedProduct: computed(() => {
+            const id = store.selectedId();
+            return store.products().find(p => p.id === id) ?? null;
+          }),
+          productCount: computed(() => store.products().length)
+        })),
+
+        withMethods((store, productService = inject(ProductService)) => ({
+          async loadProducts() {
+            patchState(store, { isLoading: true, error: null });
+            try {
+              const products = await productService.getAll();
+              patchState(store, { products, isLoading: false });
+            } catch (error) {
+              patchState(store, { error: (error as Error).message, isLoading: false });
+            }
+          },
+
+          selectProduct(id: string) {
+            patchState(store, { selectedId: id });
+          },
+
+          clearSelection() {
+            patchState(store, { selectedId: null });
+          }
+        }))
+      );
+
+  componentTest:
+    description: "Component test with Angular Testing Library"
+    code: |
+      // features/users/user-card.component.spec.ts
+      import { render, screen } from '@testing-library/angular';
+      import userEvent from '@testing-library/user-event';
+      import { UserCardComponent } from './user-card.component';
+
+      describe('UserCardComponent', () => {
+        const mockUser = {
+          id: '1',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          avatar: '/avatar.png'
+        };
+
+        it('displays user information', async () => {
+          await render(UserCardComponent, {
+            inputs: { user: mockUser }
+          });
+
+          expect(screen.getByText('John Doe')).toBeInTheDocument();
+          expect(screen.getByText('john@example.com')).toBeInTheDocument();
+        });
+
+        it('emits selected event when button clicked', async () => {
+          const user = userEvent.setup();
+          const selectedSpy = jest.fn();
+
+          await render(UserCardComponent, {
+            inputs: { user: mockUser },
+            on: { selected: selectedSpy }
+          });
+
+          await user.click(screen.getByRole('button', { name: /select/i }));
+
+          expect(selectedSpy).toHaveBeenCalledWith('1');
+        });
+
+        it('applies active class when isActive is true', async () => {
+          await render(UserCardComponent, {
+            inputs: { user: mockUser, isActive: true }
+          });
+
+          expect(screen.getByRole('article')).toHaveClass('active');
+        });
+      });
+
+  deferBlock:
+    description: "@defer for lazy loading and performance"
+    code: |
+      // features/dashboard/dashboard.component.ts
+      @Component({
+        selector: 'app-dashboard',
+        standalone: true,
+        imports: [HeavyChartComponent, DataTableComponent],
+        template: `
+          <main>
+            <h1>Dashboard</h1>
+
+            <!-- Load chart when visible in viewport -->
+            @defer (on viewport) {
+              <app-heavy-chart [data]="chartData()" />
+            } @placeholder {
+              <div class="chart-placeholder">Loading chart...</div>
+            } @loading (minimum 300ms) {
+              <app-skeleton type="chart" />
+            }
+
+            <!-- Load table when user scrolls down -->
+            @defer (on viewport; prefetch on idle) {
+              <app-data-table [rows]="tableData()" />
+            } @placeholder {
+              <p>Scroll to see data table</p>
+            }
+
+            <!-- Load on interaction -->
+            @defer (on interaction) {
+              <app-comments [postId]="postId()" />
+            } @placeholder {
+              <button>Click to load comments</button>
+            }
+
+            <!-- Conditional defer -->
+            @defer (when showAdvanced()) {
+              <app-advanced-settings />
+            }
+          </main>
+        `
+      })
+      export class DashboardComponent {
+        chartData = signal<ChartData[]>([]);
+        tableData = signal<TableRow[]>([]);
+        postId = input.required<string>();
+        showAdvanced = signal(false);
+      }
+
+# ----------------------------------------------------------------------------
+# ANTI-PATTERNS
+# ----------------------------------------------------------------------------
+antiPatterns:
+  ngModulesForNewCode:
+    name: "Using NgModules for New Components"
+    description: "NgModules are legacy; use standalone components"
+    bad: |
+      // ❌ NgModule-based component
+      @NgModule({
+        declarations: [UserCardComponent],
+        imports: [CommonModule],
+        exports: [UserCardComponent]
+      })
+      export class UserModule {}
+
+      @Component({
+        selector: 'app-user-card',
+        templateUrl: './user-card.component.html'
+      })
+      export class UserCardComponent {}
+    good: |
+      // ✅ Standalone component
+      @Component({
+        selector: 'app-user-card',
+        standalone: true,
+        imports: [RouterLink],
+        template: `...`
+      })
+      export class UserCardComponent {}
+
+  constructorInjection:
+    name: "Constructor Injection Instead of inject()"
+    description: "Use inject() function for cleaner dependency injection"
+    bad: |
+      // ❌ Constructor injection
+      @Component({ ... })
+      export class UserListComponent {
+        constructor(
+          private userService: UserService,
+          private router: Router,
+          private route: ActivatedRoute
+        ) {}
+      }
+    good: |
+      // ✅ inject() function
+      @Component({ ... })
+      export class UserListComponent {
+        private userService = inject(UserService);
+        private router = inject(Router);
+        private route = inject(ActivatedRoute);
+      }
+
+  oldControlFlow:
+    name: "Using *ngIf/*ngFor Instead of @if/@for"
+    description: "Use new built-in control flow (@if, @for, @switch)"
+    bad: |
+      // ❌ Old structural directives
+      <div *ngIf="user; else loading">{{ user.name }}</div>
+      <ng-template #loading>Loading...</ng-template>
+
+      <li *ngFor="let item of items; trackBy: trackById">
+        {{ item.name }}
+      </li>
+    good: |
+      // ✅ New control flow
+      @if (user(); as u) {
+        <div>{{ u.name }}</div>
+      } @else {
+        <span>Loading...</span>
+      }
+
+      @for (item of items(); track item.id) {
+        <li>{{ item.name }}</li>
+      } @empty {
+        <li>No items found</li>
+      }
+
+  behaviorSubjectOverSignals:
+    name: "Using BehaviorSubject When Signals Are Better"
+    description: "For synchronous state, prefer signals over RxJS"
+    bad: |
+      // ❌ BehaviorSubject for simple state
+      @Injectable({ providedIn: 'root' })
+      export class CounterService {
+        private count$ = new BehaviorSubject(0);
+        readonly count = this.count$.asObservable();
+
+        increment() {
+          this.count$.next(this.count$.value + 1);
+        }
+      }
+    good: |
+      // ✅ Signals for synchronous state
+      @Injectable({ providedIn: 'root' })
+      export class CounterService {
+        private _count = signal(0);
+        readonly count = this._count.asReadonly();
+
+        increment() {
+          this._count.update(c => c + 1);
+        }
+      }
+
+  subscribeWithoutCleanup:
+    name: "Manual Subscribe Without Cleanup"
+    description: "Use takeUntilDestroyed() or async pipe instead"
+    bad: |
+      // ❌ Manual subscribe leaks memory
+      @Component({ ... })
+      export class UserComponent implements OnInit {
+        user: User | null = null;
+
+        ngOnInit() {
+          this.userService.getUser().subscribe(user => {
+            this.user = user;
+          });
+        }
+      }
+    good: |
+      // ✅ Use toSignal() or takeUntilDestroyed()
+      @Component({ ... })
+      export class UserComponent {
+        private userService = inject(UserService);
+
+        // Option 1: toSignal (preferred)
+        user = toSignal(this.userService.getUser());
+
+        // Option 2: takeUntilDestroyed
+        private destroyRef = inject(DestroyRef);
+
+        ngOnInit() {
+          this.userService.getUser().pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe(user => {
+            this.userSignal.set(user);
+          });
+        }
+      }
+
+  defaultChangeDetection:
+    name: "Using Default Change Detection"
+    description: "OnPush with signals is more performant"
+    bad: |
+      // ❌ Default change detection
+      @Component({
+        selector: 'app-user-list',
+        template: `...`
+        // No changeDetection specified = Default
+      })
+      export class UserListComponent {
+        users: User[] = [];
+      }
+    good: |
+      // ✅ OnPush with signals
+      @Component({
+        selector: 'app-user-list',
+        changeDetection: ChangeDetectionStrategy.OnPush,
+        template: `
+          @for (user of users(); track user.id) {
+            <app-user-card [user]="user" />
+          }
+        `
+      })
+      export class UserListComponent {
+        users = signal<User[]>([]);
+      }
+
+  classBasedGuards:
+    name: "Class-Based Guards and Resolvers"
+    description: "Use functional guards and resolvers instead"
+    bad: |
+      // ❌ Class-based guard
+      @Injectable({ providedIn: 'root' })
+      export class AuthGuard implements CanActivate {
+        constructor(private auth: AuthService, private router: Router) {}
+
+        canActivate(): boolean {
+          if (this.auth.isAuthenticated()) return true;
+          this.router.navigate(['/login']);
+          return false;
+        }
+      }
+    good: |
+      // ✅ Functional guard
+      export const authGuard: CanActivateFn = () => {
+        const auth = inject(AuthService);
+        const router = inject(Router);
+
+        return auth.isAuthenticated()
+          ? true
+          : router.createUrlTree(['/login']);
+      };
+
+  templateFunctionCalls:
+    name: "Function Calls in Templates"
+    description: "Use computed signals instead of functions in templates"
+    bad: |
+      // ❌ Function called on every change detection
+      <p>{{ getFullName() }}</p>
+      <p>{{ calculateTotal(items) }}</p>
+    good: |
+      // ✅ Use computed signals
+      fullName = computed(() => `${this.user().firstName} ${this.user().lastName}`);
+      total = computed(() => this.items().reduce((sum, i) => sum + i.price, 0));
+
+      // Template
+      <p>{{ fullName() }}</p>
+      <p>{{ total() }}</p>
+
+  nestedSubscribes:
+    name: "Nested Subscribes"
+    description: "Use higher-order mapping operators instead"
+    bad: |
+      // ❌ Nested subscribes
+      this.route.params.subscribe(params => {
+        this.userService.getUser(params['id']).subscribe(user => {
+          this.user = user;
+        });
+      });
+    good: |
+      // ✅ Use switchMap
+      user = toSignal(
+        this.route.params.pipe(
+          switchMap(params => this.userService.getUser(params['id']))
+        )
+      );
+
+  hardcodedStringsInTemplates:
+    name: "Hardcoded Strings in Templates"
+    description: "Use i18n or constants for user-facing strings"
+    bad: |
+      // ❌ Hardcoded strings
+      <button>Submit</button>
+      <p>No users found</p>
+      <h1>User Management</h1>
+    good: |
+      // ✅ Use i18n
+      <button i18n>Submit</button>
+      <p i18n>No users found</p>
+
+      // ✅ Or constants file
+      <button>{{ LABELS.submit }}</button>

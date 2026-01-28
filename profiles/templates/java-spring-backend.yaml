@@ -510,3 +510,329 @@ technologies:
       useArchUnit: true
       testNamingPattern: "should_ExpectedBehavior_When_Condition"
       integrationTestSuffix: "IT"
+
+# ----------------------------------------------------------------------------
+# CODE EXAMPLES - For AI Learning
+# ----------------------------------------------------------------------------
+codeExamples:
+  valueObject: |
+    // Value Object using Java Record (immutable, self-validating)
+    public record Money(BigDecimal amount, Currency currency) {
+        public Money {
+            Objects.requireNonNull(amount, "Amount cannot be null");
+            Objects.requireNonNull(currency, "Currency cannot be null");
+            if (amount.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Amount cannot be negative");
+            }
+        }
+
+        public Money add(Money other) {
+            if (!this.currency.equals(other.currency)) {
+                throw new IllegalArgumentException("Cannot add different currencies");
+            }
+            return new Money(this.amount.add(other.amount), this.currency);
+        }
+    }
+
+  entity: |
+    // Domain Entity with encapsulated business logic
+    public class Order {
+        private final OrderId id;
+        private final CustomerId customerId;
+        private OrderStatus status;
+        private final List<OrderLine> lines;
+        private Money total;
+
+        public Order(OrderId id, CustomerId customerId) {
+            this.id = Objects.requireNonNull(id);
+            this.customerId = Objects.requireNonNull(customerId);
+            this.status = OrderStatus.DRAFT;
+            this.lines = new ArrayList<>();
+            this.total = Money.ZERO;
+        }
+
+        public void addLine(Product product, Quantity quantity) {
+            if (status != OrderStatus.DRAFT) {
+                throw new InvalidOperationException("Cannot modify non-draft order");
+            }
+            var line = new OrderLine(product, quantity);
+            lines.add(line);
+            recalculateTotal();
+        }
+
+        public void confirm() {
+            if (lines.isEmpty()) {
+                throw new BusinessRuleViolationException("Cannot confirm empty order");
+            }
+            this.status = OrderStatus.CONFIRMED;
+            // Publish domain event
+            DomainEvents.publish(new OrderConfirmed(this.id, this.total));
+        }
+    }
+
+  useCase: |
+    // Use Case / Application Service
+    @RequiredArgsConstructor
+    @Transactional
+    public class CreateOrderUseCase {
+        private final OrderRepository orderRepository;
+        private final CustomerRepository customerRepository;
+        private final DomainEventPublisher eventPublisher;
+
+        public OrderId execute(CreateOrderCommand command) {
+            // 1. Validate customer exists
+            var customer = customerRepository.findById(command.customerId())
+                .orElseThrow(() -> new EntityNotFoundException("Customer", command.customerId()));
+
+            // 2. Create order (domain logic)
+            var order = new Order(OrderId.generate(), customer.getId());
+            for (var item : command.items()) {
+                order.addLine(item.product(), item.quantity());
+            }
+
+            // 3. Save
+            orderRepository.save(order);
+
+            // 4. Publish events
+            eventPublisher.publishAll(order.getDomainEvents());
+
+            return order.getId();
+        }
+    }
+
+  controller: |
+    // REST Controller (Infrastructure Layer)
+    @RestController
+    @RequestMapping("/api/v1/orders")
+    @RequiredArgsConstructor
+    public class OrderController {
+        private final CreateOrderUseCase createOrderUseCase;
+        private final GetOrderQuery getOrderQuery;
+
+        @PostMapping
+        @ResponseStatus(HttpStatus.CREATED)
+        public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
+            var command = new CreateOrderCommand(
+                new CustomerId(request.customerId()),
+                request.items().stream()
+                    .map(i -> new OrderItem(new ProductId(i.productId()), new Quantity(i.quantity())))
+                    .toList()
+            );
+
+            var orderId = createOrderUseCase.execute(command);
+            var order = getOrderQuery.execute(orderId);
+
+            return ResponseEntity
+                .created(URI.create("/api/v1/orders/" + orderId.value()))
+                .body(order);
+        }
+    }
+
+  test: |
+    // Unit Test with Arrange-Act-Assert pattern
+    @ExtendWith(MockitoExtension.class)
+    class CreateOrderUseCaseTest {
+        @Mock
+        private OrderRepository orderRepository;
+        @Mock
+        private CustomerRepository customerRepository;
+        @Mock
+        private DomainEventPublisher eventPublisher;
+
+        @InjectMocks
+        private CreateOrderUseCase useCase;
+
+        @Test
+        void should_CreateOrder_When_CustomerExistsAndItemsValid() {
+            // Arrange
+            var customerId = new CustomerId(UUID.randomUUID());
+            var customer = new Customer(customerId, "John Doe");
+            var command = new CreateOrderCommand(customerId, List.of(
+                new OrderItem(ProductId.of("PROD-1"), Quantity.of(2))
+            ));
+
+            when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+            when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            // Act
+            var orderId = useCase.execute(command);
+
+            // Assert
+            assertThat(orderId).isNotNull();
+            verify(orderRepository).save(argThat(order ->
+                order.getCustomerId().equals(customerId) &&
+                order.getLines().size() == 1
+            ));
+            verify(eventPublisher).publishAll(anyList());
+        }
+
+        @Test
+        void should_ThrowException_When_CustomerNotFound() {
+            // Arrange
+            var command = new CreateOrderCommand(
+                new CustomerId(UUID.randomUUID()),
+                List.of()
+            );
+            when(customerRepository.findById(any())).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> useCase.execute(command))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Customer");
+        }
+    }
+
+  repository: |
+    // Repository Interface (Domain Layer - Port)
+    public interface OrderRepository {
+        Optional<Order> findById(OrderId id);
+        Order save(Order order);
+        List<Order> findByCustomerId(CustomerId customerId);
+    }
+
+    // Repository Implementation (Infrastructure Layer - Adapter)
+    @Repository
+    @RequiredArgsConstructor
+    class JpaOrderRepository implements OrderRepository {
+        private final OrderJpaRepository jpaRepository;
+        private final OrderMapper mapper;
+
+        @Override
+        public Optional<Order> findById(OrderId id) {
+            return jpaRepository.findById(id.value())
+                .map(mapper::toDomain);
+        }
+
+        @Override
+        public Order save(Order order) {
+            var entity = mapper.toEntity(order);
+            var saved = jpaRepository.save(entity);
+            return mapper.toDomain(saved);
+        }
+    }
+
+# ----------------------------------------------------------------------------
+# ANTI-PATTERNS - What NOT to do
+# ----------------------------------------------------------------------------
+antiPatterns:
+  anemicDomainModel:
+    description: "Domain objects with only getters/setters, no business logic"
+    example: |
+      // BAD: Anemic domain model
+      public class Order {
+          private OrderStatus status;
+          public OrderStatus getStatus() { return status; }
+          public void setStatus(OrderStatus status) { this.status = status; }
+      }
+
+      // Service does all the work
+      public class OrderService {
+          public void confirmOrder(Order order) {
+              if (order.getLines().isEmpty()) throw new Exception();
+              order.setStatus(OrderStatus.CONFIRMED);  // Logic outside domain!
+          }
+      }
+    fix: "Move business logic INTO the domain entity"
+
+  primitiveObsession:
+    description: "Using primitives instead of Value Objects"
+    example: |
+      // BAD: Using primitives
+      public class Order {
+          private String customerId;  // Just a String!
+          private double amount;      // Precision issues!
+          private String currency;    // No validation!
+      }
+    fix: "Use Value Objects: CustomerId, Money(amount, currency)"
+
+  godClass:
+    description: "Class with too many responsibilities"
+    example: |
+      // BAD: God class doing everything
+      public class OrderService {
+          public Order createOrder() { ... }
+          public void sendEmail() { ... }
+          public void generatePdf() { ... }
+          public void processPayment() { ... }
+          public void updateInventory() { ... }
+          public void notifyWarehouse() { ... }
+      }
+    fix: "Split into focused services: OrderService, NotificationService, PaymentService, etc."
+
+  fieldInjection:
+    description: "Using @Autowired on fields instead of constructor"
+    example: |
+      // BAD: Field injection
+      @Service
+      public class OrderService {
+          @Autowired
+          private OrderRepository repository;  // Hard to test!
+
+          @Autowired
+          private PaymentService paymentService;
+      }
+    fix: |
+      // GOOD: Constructor injection
+      @Service
+      @RequiredArgsConstructor
+      public class OrderService {
+          private final OrderRepository repository;
+          private final PaymentService paymentService;
+      }
+
+  catchingGenericException:
+    description: "Catching Exception instead of specific types"
+    example: |
+      // BAD: Catching generic Exception
+      try {
+          processOrder(order);
+      } catch (Exception e) {  // Catches EVERYTHING including NPE, OOM
+          log.error("Error", e);
+      }
+    fix: |
+      // GOOD: Catch specific exceptions
+      try {
+          processOrder(order);
+      } catch (OrderNotFoundException e) {
+          throw new ResponseStatusException(NOT_FOUND, e.getMessage());
+      } catch (InsufficientInventoryException e) {
+          throw new ResponseStatusException(CONFLICT, e.getMessage());
+      }
+
+  businessLogicInController:
+    description: "Putting business logic in REST controllers"
+    example: |
+      // BAD: Logic in controller
+      @PostMapping("/orders/{id}/confirm")
+      public void confirm(@PathVariable Long id) {
+          Order order = repository.findById(id);
+          if (order.getLines().isEmpty()) {
+              throw new BadRequestException("Empty order");
+          }
+          order.setStatus(CONFIRMED);
+          order.setConfirmedAt(Instant.now());
+          repository.save(order);
+          emailService.sendConfirmation(order);
+      }
+    fix: "Controllers should only delegate to use cases/services"
+
+  nPlusOneQueries:
+    description: "Loading related entities in a loop"
+    example: |
+      // BAD: N+1 queries
+      List<Order> orders = orderRepository.findAll();
+      for (Order order : orders) {
+          List<OrderLine> lines = lineRepository.findByOrderId(order.getId());
+          // This executes N additional queries!
+      }
+    fix: "Use JOIN FETCH or @EntityGraph to load in single query"
+
+  returningEntitiesFromControllers:
+    description: "Exposing JPA entities in API responses"
+    example: |
+      // BAD: Returning entity
+      @GetMapping("/orders/{id}")
+      public OrderEntity getOrder(@PathVariable Long id) {
+          return orderRepository.findById(id);  // Exposes internal structure!
+      }
+    fix: "Use DTOs/Response objects to control API shape"

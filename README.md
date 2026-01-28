@@ -1,49 +1,107 @@
 <div align="center">
 
 # CORBAT MCP
-#### Coding Standards Server for Claude
+#### AI Coding Standards Server
 
-### AI-generated code that passes code review on the first try.
-
-**The only MCP that makes Claude generate professional-grade code — with proper architecture, comprehensive tests, and zero code smells.**
+**AI-generated code that passes code review on the first try.**
 
 [![npm version](https://img.shields.io/npm/v/@corbat-tech/coding-standards-mcp.svg)](https://www.npmjs.com/package/@corbat-tech/coding-standards-mcp)
 [![CI](https://github.com/corbat-tech/coding-standards-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/corbat-tech/coding-standards-mcp/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-82%25-brightgreen.svg)](https://github.com/corbat-tech/coding-standards-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-1.0-blue.svg)](https://modelcontextprotocol.io/)
 
+---
+
+[![Cursor](https://img.shields.io/badge/Cursor-✓-black?style=flat-square&logo=cursor)](docs/setup.md#cursor)
+[![VS Code](https://img.shields.io/badge/VS_Code-✓-007ACC?style=flat-square&logo=visualstudiocode)](docs/setup.md#vs-code)
+[![Windsurf](https://img.shields.io/badge/Windsurf-✓-00C7B7?style=flat-square)](docs/setup.md#windsurf)
+[![JetBrains](https://img.shields.io/badge/JetBrains-✓-orange?style=flat-square&logo=jetbrains)](docs/setup.md#jetbrains-ides)
+[![Zed](https://img.shields.io/badge/Zed-✓-084CCF?style=flat-square)](docs/setup.md#zed)
+[![Claude](https://img.shields.io/badge/Claude-✓-cc785c?style=flat-square)](docs/setup.md#claude-desktop)
+
+**Works with GitHub Copilot, Continue, Cline, Tabnine, Amazon Q, and [25+ more tools](docs/compatibility.md)**
+
 </div>
 
-<p align="center">
-  <img src="assets/demo.gif" alt="CORBAT Demo" width="800">
-</p>
+---
+
+## The Problem
+
+AI-generated code works, but rarely passes code review:
+
+| Without Corbat | With Corbat |
+|----------------|-------------|
+| No dependency injection | Proper DI with interfaces |
+| Missing error handling | Custom error types with context |
+| Basic tests (if any) | 80%+ coverage with TDD |
+| God classes, long methods | SOLID, max 20 lines/method |
+| Fails SonarQube | Passes quality gates |
+
+**Result:** Production-ready code that passes code review.
 
 ---
 
-## The Real Problem With AI-Generated Code
+## Quick Start
 
-When you ask Claude to write code, it works. But does it pass code review?
+**1. Add to your MCP config:**
+
+```json
+{
+  "mcpServers": {
+    "corbat": {
+      "command": "npx",
+      "args": ["-y", "@corbat-tech/coding-standards-mcp"]
+    }
+  }
+}
+```
+
+**2. Config file location:**
+
+| Tool | Location |
+|------|----------|
+| Cursor | `.cursor/mcp.json` |
+| VS Code | `.vscode/mcp.json` |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` |
+| JetBrains | Settings → AI Assistant → MCP |
+| Claude Desktop | `~/.config/Claude/claude_desktop_config.json` |
+| Claude Code | `claude mcp add corbat -- npx -y @corbat-tech/coding-standards-mcp` |
+
+> [Complete setup guide](docs/setup.md) for all 25+ tools
+
+**3. Done!** Corbat auto-detects your stack.
 
 ```
-❌ No dependency injection
-❌ Missing error handling
-❌ Basic tests (if any)
-❌ No input validation
-❌ God classes and long methods
-❌ Fails SonarQube quality gates
-```
+You: "Create a payment service"
 
-**You spend hours fixing AI-generated code to meet your team's standards.**
+Corbat: ✓ Detected: Java 21, Spring Boot 3, Maven
+        ✓ Profile: java-spring-backend
+        ✓ Architecture: Hexagonal + DDD
+        ✓ Testing: TDD, 80%+ coverage
+```
 
 ---
 
-## What If Claude Wrote Code Like Your Senior Engineers?
+## Benchmark Results
 
-<table>
-<tr>
-<td width="50%">
+Tested across 20 real-world scenarios:
 
-### Without Corbat MCP
+| Metric | Without | With | Impact |
+|--------|:-------:|:----:|:------:|
+| **Quality Score** | 63/100 | 93/100 | +48% |
+| **Code Smells** | 43 | 0 | -100% |
+| **SOLID Compliance** | 50% | 89% | +78% |
+| **Tests Generated** | 219 | 558 | +155% |
+| **SonarQube** | FAIL | PASS | Fixed |
+
+[View detailed benchmark report with code samples](docs/comparison-tests/RESULTS-REPORT.md)
+
+---
+
+## Code Comparison
+
+### Before: Without Corbat MCP
 
 ```typescript
 class UserService {
@@ -59,18 +117,10 @@ class UserService {
     return user;
   }
 }
+// Problems: returns undefined, no validation, no DI, no tests
 ```
 
-- Returns `undefined` on not found
-- No validation
-- No error types
-- No interfaces
-- 6 basic tests
-
-</td>
-<td width="50%">
-
-### With Corbat MCP
+### After: With Corbat MCP
 
 ```typescript
 interface UserRepository {
@@ -101,355 +151,117 @@ class UserService {
     return user;
   }
 }
+// ✓ Dependency injection ✓ Custom errors ✓ Validation ✓ 15 tests
 ```
 
-- Dependency injection
-- Custom error types
-- Input validation & normalization
-- Repository pattern (ports & adapters)
-- 15 comprehensive tests
+---
 
-</td>
-</tr>
-</table>
+## Built-in Profiles
+
+| Profile | Stack | Architecture | Testing |
+|---------|-------|--------------|---------|
+| `java-spring-backend` | Java 21 + Spring Boot 3 | Hexagonal + DDD + CQRS | TDD, 80%+ coverage |
+| `kotlin-spring` | Kotlin + Spring Boot 3 | Hexagonal + Coroutines | Kotest, MockK |
+| `nodejs` | Node.js + TypeScript | Clean Architecture | Vitest |
+| `nextjs` | Next.js 14+ | Feature-based + RSC | Vitest, Playwright |
+| `react` | React 18+ | Feature-based | Testing Library |
+| `vue` | Vue 3.5+ | Feature-based | Vitest |
+| `angular` | Angular 19+ | Feature modules | Jest |
+| `python` | Python + FastAPI | Hexagonal + async | pytest |
+| `go` | Go 1.22+ | Clean + idiomatic | Table-driven tests |
+| `rust` | Rust + Axum | Clean + ownership | Built-in + proptest |
+| `csharp-dotnet` | C# 12 + ASP.NET Core 8 | Clean + CQRS | xUnit, FluentAssertions |
+| `flutter` | Dart 3 + Flutter | Clean + BLoC/Riverpod | flutter_test |
+| `minimal` | Any | Basic quality rules | Optional |
+
+**Auto-detection:** Corbat reads `pom.xml`, `package.json`, `go.mod`, `Cargo.toml`, `pubspec.yaml`, `*.csproj` to select the right profile.
+
+### Architecture Patterns Enforced
+
+- **Hexagonal Architecture** — Ports & Adapters, infrastructure isolation
+- **Domain-Driven Design** — Aggregates, Value Objects, Domain Events
+- **SOLID Principles** — Single responsibility, dependency inversion
+- **Clean Code** — Max 20 lines/method, meaningful names, no magic numbers
+- **Error Handling** — Custom exceptions with context, no generic catches
+- **Testing** — TDD workflow, unit + integration, mocking strategies
 
 ---
 
-## Benchmark Results: The Numbers Don't Lie
+## Customize
 
-We tested Claude generating identical tasks **with and without** Corbat MCP across 20 scenarios.
+### Ready-to-use templates
 
-<table>
-<tr>
-<th>Metric</th>
-<th>Without MCP</th>
-<th>With MCP</th>
-<th>Improvement</th>
-</tr>
-<tr>
-<td><b>Quality Score</b></td>
-<td>63/100</td>
-<td>93/100</td>
-<td><b>+48%</b></td>
-</tr>
-<tr>
-<td><b>Code Smells</b></td>
-<td>43</td>
-<td>0</td>
-<td><b>-100%</b></td>
-</tr>
-<tr>
-<td><b>SOLID Compliance</b></td>
-<td>50%</td>
-<td>89%</td>
-<td><b>+78%</b></td>
-</tr>
-<tr>
-<td><b>Test Coverage</b></td>
-<td>219 tests</td>
-<td>558 tests</td>
-<td><b>+155%</b></td>
-</tr>
-<tr>
-<td><b>SonarQube Gate</b></td>
-<td>FAIL</td>
-<td>PASS</td>
-<td><b>Fixed</b></td>
-</tr>
-</table>
+Copy a production-ready configuration for your stack:
 
-> **Key finding:** Code generated with Corbat MCP passes SonarQube quality gates. Without it, code fails.
+**[Browse 14 templates](docs/templates.md)** — Java, Python, Node.js, React, Vue, Angular, Go, Kotlin, Rust, Flutter, and more.
 
-[View Full Benchmark Report](docs/comparison-tests/RESULTS-REPORT.md)
-
----
-
-## Why Corbat MCP vs Other Solutions?
-
-| Approach | When it acts | What it catches | Auto-detects stack |
-|----------|:------------:|:---------------:|:------------------:|
-| **Corbat MCP** | **BEFORE** code is written | Architecture, SOLID, TDD, DDD | **Yes** |
-| ESLint/Prettier | After code exists | Syntax, formatting | No |
-| SonarQube | After PR/commit | Code smells, bugs | No |
-| Manual prompts | Every time | Whatever you remember | No |
-
-**Linters and analyzers catch problems after the fact. Corbat MCP prevents them.**
-
-### vs Other Coding MCPs
-
-| Feature | Corbat MCP | Generic coding MCPs |
-|---------|:----------:|:-------------------:|
-| Task-specific guardrails (feature vs bugfix vs refactor) | **Yes** | No |
-| Auto-detects your stack from project files | **Yes** | No |
-| Enforces architectural patterns (Hexagonal, DDD) | **Yes** | Limited |
-| Comprehensive benchmark data | **Yes** | No |
-| 7 production-ready profiles | **Yes** | Basic |
-
----
-
-## Quick Start (2 minutes)
-
-**Step 1** — Add to Claude:
-
-<table>
-<tr>
-<td><b>Claude Code</b></td>
-<td>
+### Generate a custom profile
 
 ```bash
-claude mcp add corbat -- npx -y @corbat-tech/coding-standards-mcp
+npx corbat-init
 ```
 
-</td>
-</tr>
-<tr>
-<td><b>Claude Desktop</b></td>
-<td>
+Interactive wizard that auto-detects your stack and lets you configure architecture, DDD patterns, and quality metrics.
 
-Edit `~/.config/Claude/claude_desktop_config.json`:
+### Manual config
+
+Create `.corbat.json` in your project root:
+
 ```json
 {
-  "mcpServers": {
-    "corbat": {
-      "command": "npx",
-      "args": ["-y", "@corbat-tech/coding-standards-mcp"]
-    }
+  "profile": "java-spring-backend",
+  "architecture": {
+    "pattern": "hexagonal",
+    "layers": ["domain", "application", "infrastructure", "api"]
+  },
+  "ddd": {
+    "aggregates": true,
+    "valueObjects": true,
+    "domainEvents": true
+  },
+  "quality": {
+    "maxMethodLines": 20,
+    "maxClassLines": 200,
+    "minCoverage": 80
+  },
+  "rules": {
+    "always": ["Use records for DTOs", "Prefer Optional over null"],
+    "never": ["Use field injection", "Catch generic Exception"]
   }
 }
 ```
-
-</td>
-</tr>
-</table>
-
-**Step 2** — Just code:
-
-```
-You: "Create a payment service"
-
-Corbat: ✓ Detected Java/Spring project
-        ✓ Loaded java-spring-backend profile
-        ✓ Applied hexagonal architecture rules
-        ✓ Enforced TDD workflow
-        ✓ Set 80%+ coverage requirement
-```
-
-**That's it.** Claude now generates code that passes code review.
-
----
-
-## What Gets Injected Automatically
-
-When you ask Claude to create code, Corbat MCP injects professional standards:
-
-```markdown
-## Detected
-- Stack: Java 21 · Spring Boot 3 · Maven
-- Task type: FEATURE
-- Profile: java-spring-backend
-
-## MUST
-✓ Write tests BEFORE implementation (TDD)
-✓ Use hexagonal architecture (domain → application → infrastructure)
-✓ Apply SOLID principles
-✓ Ensure 80%+ test coverage
-✓ Create custom error types with context
-✓ Validate all inputs at boundaries
-
-## AVOID
-✗ God classes (>200 lines) or god methods (>20 lines)
-✗ Hard-coded configuration values
-✗ Mixing business logic with infrastructure
-✗ Returning null/undefined (use Result types or throw)
-```
-
----
-
-## Smart Guardrails by Task Type
-
-Corbat MCP automatically detects what you're doing and applies different rules:
-
-| Task | Key Rules |
-|------|-----------|
-| **Feature** | TDD workflow, 80%+ coverage, SOLID, hexagonal architecture |
-| **Bugfix** | Write failing test first, minimal changes, document root cause |
-| **Refactor** | Tests pass before AND after, no behavior changes, incremental |
-| **Test** | AAA pattern, one assertion per test, descriptive names |
-
-```
-You: "Fix the login timeout bug"
-
-Corbat detects: BUGFIX
-Applies: Failing test first → Minimal fix → Verify no regressions
-```
-
----
-
-## Built-in Profiles for Every Stack
-
-| Profile | Stack | Architecture |
-|---------|-------|--------------|
-| `java-spring-backend` | Java 21, Spring Boot 3 | Hexagonal + DDD + CQRS |
-| `nodejs` | Node.js, TypeScript | Clean Architecture |
-| `python` | Python, FastAPI | Clean Architecture |
-| `react` | React 18+ | Feature-based components |
-| `angular` | Angular 19+ | Feature-based + Signals |
-| `vue` | Vue 3.5+ | Composition API |
-| `minimal` | Any | Basic quality standards |
-
-**Auto-detection:** Corbat reads `pom.xml`, `package.json`, `requirements.txt` to select the right profile automatically.
-
----
-
-## ROI for Development Teams
-
-Based on our benchmark data:
-
-| Benefit | Impact |
-|---------|--------|
-| Code review time | **-40%** (fewer issues to catch) |
-| Bug density | **-50%** (better test coverage) |
-| Onboarding time | **-30%** (consistent architecture) |
-| Technical debt | **-90%** (zero code smells) |
-| Debugging time | **-60%** (custom errors with context) |
 
 ---
 
 ## How It Works
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Your Prompt    │────▶│   Corbat MCP    │────▶│  Claude + Rules │
-│                 │     │                 │     │                 │
-│ "Create user    │     │ 1. Detect stack │     │ Generates code  │
-│  service"       │     │ 2. Classify task│     │ that passes     │
-│                 │     │ 3. Load profile │     │ code review     │
-│                 │     │ 4. Inject rules │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-```
-
-Corbat MCP acts as a **quality layer** between you and Claude. It automatically:
-1. **Detects** your project's technology stack
-2. **Classifies** the type of task (feature, bugfix, refactor, test)
-3. **Loads** the appropriate profile with architecture rules
-4. **Injects** guardrails before Claude generates any code
-
----
-
-## Customize (Optional)
-
-### Interactive Setup
-```bash
-npx corbat-init
-```
-
-### Manual Config
-
-Create `.corbat.json` in your project root:
-
-```json
-{
-  "profile": "nodejs",
-  "rules": {
-    "always": [
-      "Use TypeScript strict mode",
-      "Prefer functional programming"
-    ],
-    "never": [
-      "Use any type"
-    ]
-  }
-}
+Your Prompt ──▶ Corbat MCP ──▶ AI + Standards
+                    │
+                    ├─ 1. Detect stack (pom.xml, package.json...)
+                    ├─ 2. Classify task (feature, bugfix, refactor)
+                    ├─ 3. Load profile with architecture rules
+                    └─ 4. Inject guardrails before code generation
 ```
 
 ---
 
-## Available Tools
+## Documentation
 
-| Tool | Purpose |
-|------|---------|
-| `get_context` | **Primary** — Returns all standards for your task |
-| `validate` | Check code against standards (returns compliance score) |
-| `search` | Search 15 standards documents |
-| `profiles` | List all available profiles |
-| `health` | Server status and diagnostics |
-
----
-
-## Compatibility
-
-| Client | Status |
-|--------|:------:|
-| Claude Code (CLI) | ✅ Tested |
-| Claude Desktop | ✅ Tested |
-| Cursor | ⚠️ Experimental |
-| Windsurf | ⚠️ Experimental |
-| Other MCP clients | ✅ Standard protocol |
-
----
-
-## Included Documentation
-
-Corbat MCP comes with 15 searchable standards documents:
-
-- **Architecture:** Hexagonal, DDD, Clean Architecture
-- **Code Quality:** SOLID principles, Clean Code, Naming Conventions
-- **Testing:** TDD workflow, Unit/Integration/E2E guidelines
-- **DevOps:** Docker, Kubernetes, CI/CD best practices
-- **Observability:** Structured logging, Metrics, Distributed tracing
-
-Use the search tool: `"search kafka"` → Returns event-driven architecture guidelines.
-
----
-
-## Troubleshooting
-
-<details>
-<summary><b>Claude can't find corbat</b></summary>
-
-1. Verify npm/npx is in PATH: `which npx`
-2. Test manually: `npx @corbat-tech/coding-standards-mcp`
-3. Restart Claude completely
-4. Check Claude's MCP logs
-
-</details>
-
-<details>
-<summary><b>Wrong stack detected</b></summary>
-
-Override with `.corbat.json`:
-```json
-{ "profile": "nodejs" }
-```
-
-Or specify in prompt: *"...using profile nodejs"*
-
-</details>
-
-<details>
-<summary><b>Standards not being applied</b></summary>
-
-1. Check if `.corbat.json` exists in project root
-2. Verify profile exists
-3. Try explicit: *"Use corbat get_context for: your task"*
-
-</details>
-
----
-
-## Links
-
-- [Full Documentation](docs/full-documentation.md)
-- [Benchmark Report](docs/comparison-tests/RESULTS-REPORT.md)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Report Issues](https://github.com/corbat-tech/coding-standards-mcp/issues)
+| Resource | Description |
+|----------|-------------|
+| [Setup Guide](docs/setup.md) | Installation for all 25+ tools |
+| [Templates](docs/templates.md) | Ready-to-use `.corbat.json` configurations |
+| [Compatibility](docs/compatibility.md) | Full list of supported tools |
+| [Benchmark Report](docs/comparison-tests/RESULTS-REPORT.md) | 20 real-world tests with code samples |
+| [API Reference](docs/full-documentation.md) | Tools, prompts, and configuration |
 
 ---
 
 <div align="center">
 
-**Stop fixing AI-generated code. Start shipping it.**
+**Stop fixing AI code. Start shipping it.**
 
-[Get Started](#quick-start-2-minutes) · [View Benchmarks](docs/comparison-tests/RESULTS-REPORT.md) · [Documentation](docs/full-documentation.md)
+*Recommended by [corbat-tech](https://corbat.tech) — We use Claude Code internally, but Corbat MCP works with any MCP-compatible tool.*
 
 </div>

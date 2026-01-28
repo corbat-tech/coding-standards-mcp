@@ -1,0 +1,1276 @@
+# ============================================================================
+# CORBAT MCP - Go Profile
+# ============================================================================
+# Production-ready standards for Go backend applications and microservices.
+# Based on Effective Go, Go Code Review Comments, and idiomatic Go patterns.
+# ============================================================================
+
+name: "Go Backend Standards"
+description: "Production-ready standards for Go microservices with idiomatic patterns, clean architecture, and comprehensive testing"
+
+# ----------------------------------------------------------------------------
+# ARCHITECTURE
+# ----------------------------------------------------------------------------
+architecture:
+  type: clean
+  enforceLayerDependencies: true
+  layers:
+    - name: domain
+      description: "Core business logic. Pure Go with no external dependencies. Contains entities, value objects, and domain interfaces."
+      allowedDependencies: []
+      packages:
+        - "internal/domain"
+        - "internal/domain/entity"
+        - "internal/domain/valueobject"
+        - "internal/domain/repository"
+        - "internal/domain/service"
+
+    - name: usecase
+      description: "Application use cases. Orchestrates domain objects. Contains business workflows and application services."
+      allowedDependencies:
+        - domain
+      packages:
+        - "internal/usecase"
+        - "internal/application"
+
+    - name: interface
+      description: "Delivery mechanisms: HTTP handlers, gRPC servers, CLI commands. Adapts external input to use cases."
+      allowedDependencies:
+        - domain
+        - usecase
+      packages:
+        - "internal/handler"
+        - "internal/transport"
+        - "internal/api"
+        - "cmd"
+
+    - name: infrastructure
+      description: "External adapters: database repositories, external APIs, messaging. Implements domain interfaces."
+      allowedDependencies:
+        - domain
+        - usecase
+      packages:
+        - "internal/infrastructure"
+        - "internal/repository"
+        - "internal/gateway"
+        - "pkg"
+
+# ----------------------------------------------------------------------------
+# GO IDIOMS
+# ----------------------------------------------------------------------------
+goIdioms:
+  enabled: true
+
+  naming:
+    packages: "lowercase, single word preferred"
+    exported: "PascalCase (exported)"
+    unexported: "camelCase (unexported)"
+    interfaces: "er suffix for single-method (Reader, Writer, Closer)"
+    acronyms: "ALL_CAPS (URL, HTTP, ID)"
+    receivers: "short, 1-2 letters (c for Customer)"
+    variables: "short in small scope, descriptive in large scope"
+    constants: "PascalCase for exported, camelCase for unexported"
+
+  errorHandling:
+    returnErrorLast: true
+    checkImmediately: true
+    wrapWithContext: true
+    useErrorsIs: true
+    useErrorsAs: true
+    sentinelErrors: true
+    customErrorTypes: true
+    neverPanicInLibraries: true
+    examples:
+      - "if err != nil { return fmt.Errorf(\"failed to create order: %w\", err) }"
+      - "var ErrNotFound = errors.New(\"entity not found\")"
+
+  patterns:
+    functionalOptions: true
+    tableDrivenTests: true
+    deferForCleanup: true
+    contextPropagation: true
+    interfaceSegregation: true
+    acceptInterfacesReturnStructs: true
+    earlyReturn: true
+    examples:
+      - "Functional Options: func NewServer(opts ...Option) *Server"
+      - "Accept interfaces: func Process(r io.Reader)"
+      - "Return structs: func NewService() *Service"
+
+# ----------------------------------------------------------------------------
+# CODE QUALITY
+# ----------------------------------------------------------------------------
+codeQuality:
+  maxMethodLines: 30
+  maxClassLines: 300
+  maxFileLines: 500
+  maxMethodParameters: 4
+  maxCyclomaticComplexity: 10
+  requireDocumentation: true
+  requireTests: true
+  minimumTestCoverage: 70
+
+  principles:
+    - "Clear is better than clever"
+    - "A little copying is better than a little dependency"
+    - "Errors are values"
+    - "Don't panic"
+    - "Accept interfaces, return structs"
+    - "Make the zero value useful"
+    - "Concurrency is not parallelism"
+
+  linting:
+    tools:
+      - "go fmt"
+      - "go vet"
+      - "staticcheck"
+      - "golangci-lint"
+    golangciLintConfig:
+      enabled:
+        - "errcheck"
+        - "gosimple"
+        - "govet"
+        - "ineffassign"
+        - "staticcheck"
+        - "unused"
+        - "gocyclo"
+        - "gofmt"
+        - "goimports"
+        - "misspell"
+        - "unconvert"
+        - "unparam"
+        - "gocritic"
+
+# ----------------------------------------------------------------------------
+# NAMING CONVENTIONS
+# ----------------------------------------------------------------------------
+naming:
+  general:
+    package: lowercase_single_word
+    struct: PascalCase
+    interface: PascalCase_er_suffix
+    function: PascalCase_or_camelCase
+    variable: camelCase
+    constant: PascalCase_or_camelCase
+    file: snake_case.go
+
+  suffixes:
+    handler: "Handler"
+    service: "Service"
+    repository: "Repository"
+    usecase: "UseCase"
+    mock: "Mock"
+    test: "_test.go"
+    options: "Option"
+
+  testing:
+    testFile: "*_test.go"
+    testFunction: "Test_FunctionName_Scenario"
+    benchmarkFunction: "Benchmark_FunctionName"
+    exampleFunction: "Example_FunctionName"
+
+# ----------------------------------------------------------------------------
+# TESTING
+# ----------------------------------------------------------------------------
+testing:
+  framework: "testing (stdlib)"
+  assertionLibrary: "testify/assert (optional)"
+  mockingLibrary: "gomock or mockery"
+
+  types:
+    unit:
+      suffix: "_test.go"
+      location: "same package"
+      coverage: 70
+      parallel: true
+
+    integration:
+      suffix: "_integration_test.go"
+      location: "same package or _test package"
+      buildTag: "integration"
+      useTestcontainers: true
+
+    benchmark:
+      prefix: "Benchmark_"
+      location: "*_test.go"
+
+  patterns:
+    tableDrivenTests: true
+    subtests: true
+    parallelTests: true
+    testHelpers: true
+    testFixtures: true
+    examples:
+      - |
+        func TestCalculateTotal(t *testing.T) {
+            tests := []struct {
+                name     string
+                input    []int
+                expected int
+            }{
+                {"empty slice", []int{}, 0},
+                {"single item", []int{5}, 5},
+                {"multiple items", []int{1, 2, 3}, 6},
+            }
+            for _, tt := range tests {
+                t.Run(tt.name, func(t *testing.T) {
+                    t.Parallel()
+                    got := CalculateTotal(tt.input)
+                    if got != tt.expected {
+                        t.Errorf("got %d, want %d", got, tt.expected)
+                    }
+                })
+            }
+        }
+
+  testcontainers:
+    enabled: true
+    containers:
+      - "postgres"
+      - "redis"
+      - "kafka"
+      - "mongodb"
+
+# ----------------------------------------------------------------------------
+# CONCURRENCY
+# ----------------------------------------------------------------------------
+concurrency:
+  patterns:
+    goroutines:
+      alwaysOwnLifecycle: true
+      useWaitGroups: true
+      useErrgroups: true
+      avoidLeaks: true
+    channels:
+      preferUnbuffered: true
+      closeByProducer: true
+      nilChannelBlocks: true
+    context:
+      propagateAlways: true
+      useForCancellation: true
+      useForTimeout: true
+      firstParameter: true
+    mutexes:
+      embedPrivately: true
+      deferUnlock: true
+      avoidCopying: true
+
+  examples:
+    - "Always pass context.Context as first parameter"
+    - "Use errgroup.Group for concurrent error handling"
+    - "Close channels from producer side only"
+    - "Prefer select with default for non-blocking operations"
+
+# ----------------------------------------------------------------------------
+# ERROR HANDLING
+# ----------------------------------------------------------------------------
+errorHandling:
+  format: "Wrapped errors with context"
+
+  patterns:
+    sentinel:
+      - "var ErrNotFound = errors.New(\"not found\")"
+      - "var ErrInvalidInput = errors.New(\"invalid input\")"
+      - "var ErrUnauthorized = errors.New(\"unauthorized\")"
+
+    custom:
+      example: |
+        type ValidationError struct {
+            Field   string
+            Message string
+        }
+        func (e *ValidationError) Error() string {
+            return fmt.Sprintf("%s: %s", e.Field, e.Message)
+        }
+
+    wrapping:
+      - "Always wrap with context: fmt.Errorf(\"failed to process order %s: %w\", orderID, err)"
+      - "Use errors.Is for sentinel errors"
+      - "Use errors.As for type assertions"
+
+  avoid:
+    - "panic in library code"
+    - "ignoring errors (even with _)"
+    - "error strings starting with capital or ending with punctuation"
+    - "naked returns in functions with named error return"
+
+# ----------------------------------------------------------------------------
+# OBSERVABILITY
+# ----------------------------------------------------------------------------
+observability:
+  enabled: true
+
+  logging:
+    framework: "slog (stdlib)"
+    format: "JSON"
+    structuredLogging: true
+    levels:
+      production: "Info"
+      development: "Debug"
+    contextual: true
+    avoid:
+      - "fmt.Println for logging"
+      - "log.Fatal in libraries"
+      - "logging sensitive data"
+    example: |
+      logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+      logger.Info("order processed",
+          slog.String("order_id", order.ID),
+          slog.Int("items", len(order.Items)),
+          slog.Duration("duration", elapsed),
+      )
+
+  metrics:
+    framework: "prometheus/client_golang"
+    registry: "prometheus"
+    types:
+      - "Counter: requests_total, errors_total"
+      - "Gauge: connections_active, queue_length"
+      - "Histogram: request_duration_seconds"
+    naming: "snake_case with _total, _seconds suffixes"
+
+  tracing:
+    framework: "OpenTelemetry"
+    propagation: "W3C Trace Context"
+    exporters:
+      - "Jaeger"
+      - "OTLP"
+    spanAttributes:
+      - "http.method"
+      - "http.route"
+      - "http.status_code"
+      - "db.operation"
+
+  healthChecks:
+    endpoints:
+      - "/health"
+      - "/health/live"
+      - "/health/ready"
+    customChecks:
+      - "database"
+      - "redis"
+      - "external APIs"
+
+# ----------------------------------------------------------------------------
+# HTTP/API
+# ----------------------------------------------------------------------------
+httpApi:
+  router: "chi, gorilla/mux, or stdlib (1.22+)"
+  middleware:
+    - "logging"
+    - "recovery"
+    - "requestID"
+    - "timeout"
+    - "cors"
+
+  patterns:
+    requestValidation: "encoding/json + custom validators"
+    responseFormat: "JSON"
+    errorResponses: "RFC 7807 Problem Details"
+    pagination: "cursor-based or offset"
+    versioning: "/api/v1/"
+
+  gracefulShutdown:
+    enabled: true
+    timeout: "30s"
+    example: |
+      srv := &http.Server{Addr: ":8080", Handler: router}
+      go func() {
+          if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+              log.Fatal(err)
+          }
+      }()
+      <-ctx.Done()
+      shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+      defer cancel()
+      srv.Shutdown(shutdownCtx)
+
+# ----------------------------------------------------------------------------
+# DATABASE
+# ----------------------------------------------------------------------------
+database:
+  driver: "database/sql or sqlx"
+  orm: "sqlc (generated) or GORM"
+
+  migrations:
+    tool: "golang-migrate or goose"
+    location: "db/migrations"
+    naming: "{timestamp}_{description}.up.sql"
+
+  patterns:
+    repository: true
+    preparedStatements: true
+    connectionPooling: true
+    transactionHandling: true
+
+  queryBuilder: "sqlc (type-safe generated code)"
+
+# ----------------------------------------------------------------------------
+# PROJECT STRUCTURE
+# ----------------------------------------------------------------------------
+projectStructure:
+  layout: "Standard Go Project Layout"
+  directories:
+    cmd: "Main applications (cmd/api/, cmd/worker/)"
+    internal: "Private application code"
+    pkg: "Public library code (if any)"
+    api: "API definitions (OpenAPI, protobuf)"
+    configs: "Configuration files"
+    scripts: "Build and automation scripts"
+    test: "Additional test data and utilities"
+    docs: "Documentation"
+
+  example: |
+    myapp/
+    ├── cmd/
+    │   └── api/
+    │       └── main.go
+    ├── internal/
+    │   ├── domain/
+    │   │   ├── entity/
+    │   │   └── repository/
+    │   ├── usecase/
+    │   ├── handler/
+    │   └── infrastructure/
+    ├── pkg/
+    ├── api/
+    ├── configs/
+    └── go.mod
+
+# ----------------------------------------------------------------------------
+# DEPENDENCY INJECTION
+# ----------------------------------------------------------------------------
+dependencyInjection:
+  approach: "Constructor injection (manual)"
+  frameworks: "wire (optional), fx (optional)"
+
+  pattern: |
+    func NewOrderService(repo OrderRepository, logger *slog.Logger) *OrderService {
+        return &OrderService{
+            repo:   repo,
+            logger: logger,
+        }
+    }
+
+# ----------------------------------------------------------------------------
+# TECHNOLOGIES
+# ----------------------------------------------------------------------------
+technologies:
+  - name: go
+    version: "1.22+"
+    specificRules:
+      useGoModules: true
+      minimumGoVersion: "1.22"
+      useGenerics: true
+      useRangeOverFunc: true
+      useSlicesPackage: true
+      useMapsPackage: true
+
+  - name: http
+    framework: "chi or stdlib mux"
+    specificRules:
+      useMiddleware: true
+      useGracefulShutdown: true
+      useContextTimeout: true
+
+  - name: database
+    driver: "pgx for PostgreSQL"
+    specificRules:
+      usePreparedStatements: true
+      useConnectionPool: true
+      handleTransactions: true
+
+  - name: testing
+    specificRules:
+      useTableDrivenTests: true
+      useParallelTests: true
+      useSubtests: true
+      useBenchmarks: true
+      useTestcontainers: true
+
+# ----------------------------------------------------------------------------
+# CODE EXAMPLES
+# ----------------------------------------------------------------------------
+codeExamples:
+  entity:
+    description: "Domain entity with business logic"
+    code: |
+      // internal/domain/entity/order.go
+      package entity
+
+      import (
+          "errors"
+          "time"
+
+          "github.com/google/uuid"
+      )
+
+      var (
+          ErrEmptyItems    = errors.New("order must have at least one item")
+          ErrNotPending    = errors.New("order is not pending")
+          ErrInvalidAmount = errors.New("amount must be positive")
+      )
+
+      type OrderStatus string
+
+      const (
+          OrderStatusPending   OrderStatus = "PENDING"
+          OrderStatusConfirmed OrderStatus = "CONFIRMED"
+          OrderStatusCancelled OrderStatus = "CANCELLED"
+      )
+
+      type Order struct {
+          ID         uuid.UUID
+          CustomerID uuid.UUID
+          Items      []OrderItem
+          Status     OrderStatus
+          CreatedAt  time.Time
+      }
+
+      func NewOrder(customerID uuid.UUID, items []OrderItem) (*Order, error) {
+          if len(items) == 0 {
+              return nil, ErrEmptyItems
+          }
+
+          return &Order{
+              ID:         uuid.New(),
+              CustomerID: customerID,
+              Items:      items,
+              Status:     OrderStatusPending,
+              CreatedAt:  time.Now(),
+          }, nil
+      }
+
+      func (o *Order) Total() Money {
+          total := Money{Amount: 0, Currency: "USD"}
+          for _, item := range o.Items {
+              total = total.Add(item.Subtotal())
+          }
+          return total
+      }
+
+      func (o *Order) Confirm() error {
+          if o.Status != OrderStatusPending {
+              return ErrNotPending
+          }
+          o.Status = OrderStatusConfirmed
+          return nil
+      }
+
+      func (o *Order) AddItem(item OrderItem) error {
+          if o.Status != OrderStatusPending {
+              return ErrNotPending
+          }
+          o.Items = append(o.Items, item)
+          return nil
+      }
+
+  valueObject:
+    description: "Immutable value object"
+    code: |
+      // internal/domain/valueobject/money.go
+      package valueobject
+
+      import "fmt"
+
+      type Money struct {
+          Amount   int64  // cents
+          Currency string
+      }
+
+      func NewMoney(amount int64, currency string) (Money, error) {
+          if amount < 0 {
+              return Money{}, fmt.Errorf("amount cannot be negative: %d", amount)
+          }
+          return Money{Amount: amount, Currency: currency}, nil
+      }
+
+      func (m Money) Add(other Money) Money {
+          if m.Currency != other.Currency {
+              panic(fmt.Sprintf("currency mismatch: %s vs %s", m.Currency, other.Currency))
+          }
+          return Money{Amount: m.Amount + other.Amount, Currency: m.Currency}
+      }
+
+      func (m Money) Multiply(factor int) Money {
+          return Money{Amount: m.Amount * int64(factor), Currency: m.Currency}
+      }
+
+      func (m Money) String() string {
+          return fmt.Sprintf("%s %.2f", m.Currency, float64(m.Amount)/100)
+      }
+
+      func (m Money) Equals(other Money) bool {
+          return m.Amount == other.Amount && m.Currency == other.Currency
+      }
+
+  repositoryInterface:
+    description: "Repository interface (port)"
+    code: |
+      // internal/domain/repository/order.go
+      package repository
+
+      import (
+          "context"
+
+          "github.com/google/uuid"
+          "myapp/internal/domain/entity"
+      )
+
+      type OrderRepository interface {
+          Save(ctx context.Context, order *entity.Order) error
+          FindByID(ctx context.Context, id uuid.UUID) (*entity.Order, error)
+          FindByCustomerID(ctx context.Context, customerID uuid.UUID) ([]*entity.Order, error)
+      }
+
+  useCase:
+    description: "Application use case"
+    code: |
+      // internal/usecase/create_order.go
+      package usecase
+
+      import (
+          "context"
+          "log/slog"
+
+          "github.com/google/uuid"
+          "myapp/internal/domain/entity"
+          "myapp/internal/domain/repository"
+      )
+
+      type CreateOrderInput struct {
+          CustomerID uuid.UUID
+          Items      []CreateOrderItemInput
+      }
+
+      type CreateOrderItemInput struct {
+          ProductID uuid.UUID
+          Quantity  int
+          UnitPrice int64
+      }
+
+      type CreateOrderUseCase struct {
+          orderRepo repository.OrderRepository
+          publisher EventPublisher
+          logger    *slog.Logger
+      }
+
+      func NewCreateOrderUseCase(
+          orderRepo repository.OrderRepository,
+          publisher EventPublisher,
+          logger *slog.Logger,
+      ) *CreateOrderUseCase {
+          return &CreateOrderUseCase{
+              orderRepo: orderRepo,
+              publisher: publisher,
+              logger:    logger,
+          }
+      }
+
+      func (uc *CreateOrderUseCase) Execute(ctx context.Context, input CreateOrderInput) (*entity.Order, error) {
+          uc.logger.Info("creating order", slog.String("customer_id", input.CustomerID.String()))
+
+          items := make([]entity.OrderItem, 0, len(input.Items))
+          for _, item := range input.Items {
+              orderItem, err := entity.NewOrderItem(item.ProductID, item.Quantity, item.UnitPrice)
+              if err != nil {
+                  return nil, fmt.Errorf("invalid item: %w", err)
+              }
+              items = append(items, orderItem)
+          }
+
+          order, err := entity.NewOrder(input.CustomerID, items)
+          if err != nil {
+              return nil, fmt.Errorf("failed to create order: %w", err)
+          }
+
+          if err := uc.orderRepo.Save(ctx, order); err != nil {
+              return nil, fmt.Errorf("failed to save order: %w", err)
+          }
+
+          if err := uc.publisher.Publish(ctx, OrderCreatedEvent{OrderID: order.ID}); err != nil {
+              uc.logger.Error("failed to publish event", slog.Any("error", err))
+          }
+
+          uc.logger.Info("order created", slog.String("order_id", order.ID.String()))
+
+          return order, nil
+      }
+
+  handler:
+    description: "HTTP handler with chi router"
+    code: |
+      // internal/handler/order_handler.go
+      package handler
+
+      import (
+          "encoding/json"
+          "net/http"
+
+          "github.com/go-chi/chi/v5"
+          "github.com/google/uuid"
+          "myapp/internal/usecase"
+      )
+
+      type OrderHandler struct {
+          createOrderUC *usecase.CreateOrderUseCase
+          getOrderUC    *usecase.GetOrderUseCase
+      }
+
+      func NewOrderHandler(
+          createOrderUC *usecase.CreateOrderUseCase,
+          getOrderUC *usecase.GetOrderUseCase,
+      ) *OrderHandler {
+          return &OrderHandler{
+              createOrderUC: createOrderUC,
+              getOrderUC:    getOrderUC,
+          }
+      }
+
+      func (h *OrderHandler) Routes() chi.Router {
+          r := chi.NewRouter()
+          r.Post("/", h.Create)
+          r.Get("/{id}", h.GetByID)
+          return r
+      }
+
+      type CreateOrderRequest struct {
+          CustomerID string              `json:"customer_id"`
+          Items      []OrderItemRequest  `json:"items"`
+      }
+
+      type OrderItemRequest struct {
+          ProductID string `json:"product_id"`
+          Quantity  int    `json:"quantity"`
+          UnitPrice int64  `json:"unit_price"`
+      }
+
+      func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
+          var req CreateOrderRequest
+          if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+              respondError(w, http.StatusBadRequest, "invalid request body")
+              return
+          }
+
+          customerID, err := uuid.Parse(req.CustomerID)
+          if err != nil {
+              respondError(w, http.StatusBadRequest, "invalid customer_id")
+              return
+          }
+
+          input := usecase.CreateOrderInput{
+              CustomerID: customerID,
+              Items:      mapItemsToInput(req.Items),
+          }
+
+          order, err := h.createOrderUC.Execute(r.Context(), input)
+          if err != nil {
+              handleUseCaseError(w, err)
+              return
+          }
+
+          respondJSON(w, http.StatusCreated, mapOrderToResponse(order))
+      }
+
+      func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+          idStr := chi.URLParam(r, "id")
+          id, err := uuid.Parse(idStr)
+          if err != nil {
+              respondError(w, http.StatusBadRequest, "invalid order id")
+              return
+          }
+
+          order, err := h.getOrderUC.Execute(r.Context(), id)
+          if err != nil {
+              handleUseCaseError(w, err)
+              return
+          }
+
+          respondJSON(w, http.StatusOK, mapOrderToResponse(order))
+      }
+
+  repositoryImpl:
+    description: "Repository implementation with PostgreSQL"
+    code: |
+      // internal/infrastructure/postgres/order_repository.go
+      package postgres
+
+      import (
+          "context"
+          "database/sql"
+          "fmt"
+
+          "github.com/google/uuid"
+          "myapp/internal/domain/entity"
+          "myapp/internal/domain/repository"
+      )
+
+      type OrderRepository struct {
+          db *sql.DB
+      }
+
+      func NewOrderRepository(db *sql.DB) *OrderRepository {
+          return &OrderRepository{db: db}
+      }
+
+      func (r *OrderRepository) Save(ctx context.Context, order *entity.Order) error {
+          tx, err := r.db.BeginTx(ctx, nil)
+          if err != nil {
+              return fmt.Errorf("begin transaction: %w", err)
+          }
+          defer tx.Rollback()
+
+          _, err = tx.ExecContext(ctx, `
+              INSERT INTO orders (id, customer_id, status, created_at)
+              VALUES ($1, $2, $3, $4)
+              ON CONFLICT (id) DO UPDATE SET status = $3
+          `, order.ID, order.CustomerID, order.Status, order.CreatedAt)
+          if err != nil {
+              return fmt.Errorf("insert order: %w", err)
+          }
+
+          for _, item := range order.Items {
+              _, err = tx.ExecContext(ctx, `
+                  INSERT INTO order_items (id, order_id, product_id, quantity, unit_price)
+                  VALUES ($1, $2, $3, $4, $5)
+              `, item.ID, order.ID, item.ProductID, item.Quantity, item.UnitPrice)
+              if err != nil {
+                  return fmt.Errorf("insert item: %w", err)
+              }
+          }
+
+          if err := tx.Commit(); err != nil {
+              return fmt.Errorf("commit transaction: %w", err)
+          }
+
+          return nil
+      }
+
+      func (r *OrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Order, error) {
+          row := r.db.QueryRowContext(ctx, `
+              SELECT id, customer_id, status, created_at
+              FROM orders WHERE id = $1
+          `, id)
+
+          var order entity.Order
+          if err := row.Scan(&order.ID, &order.CustomerID, &order.Status, &order.CreatedAt); err != nil {
+              if err == sql.ErrNoRows {
+                  return nil, nil
+              }
+              return nil, fmt.Errorf("scan order: %w", err)
+          }
+
+          items, err := r.findItemsByOrderID(ctx, id)
+          if err != nil {
+              return nil, err
+          }
+          order.Items = items
+
+          return &order, nil
+      }
+
+  test:
+    description: "Table-driven test"
+    code: |
+      // internal/domain/entity/order_test.go
+      package entity_test
+
+      import (
+          "testing"
+
+          "github.com/google/uuid"
+          "github.com/stretchr/testify/assert"
+          "github.com/stretchr/testify/require"
+          "myapp/internal/domain/entity"
+      )
+
+      func TestNewOrder(t *testing.T) {
+          t.Parallel()
+
+          customerID := uuid.New()
+          validItem := entity.OrderItem{
+              ID:        uuid.New(),
+              ProductID: uuid.New(),
+              Quantity:  2,
+              UnitPrice: 1000,
+          }
+
+          tests := []struct {
+              name        string
+              customerID  uuid.UUID
+              items       []entity.OrderItem
+              wantErr     error
+              wantStatus  entity.OrderStatus
+          }{
+              {
+                  name:       "valid order",
+                  customerID: customerID,
+                  items:      []entity.OrderItem{validItem},
+                  wantStatus: entity.OrderStatusPending,
+              },
+              {
+                  name:       "empty items",
+                  customerID: customerID,
+                  items:      []entity.OrderItem{},
+                  wantErr:    entity.ErrEmptyItems,
+              },
+          }
+
+          for _, tt := range tests {
+              t.Run(tt.name, func(t *testing.T) {
+                  t.Parallel()
+
+                  order, err := entity.NewOrder(tt.customerID, tt.items)
+
+                  if tt.wantErr != nil {
+                      require.ErrorIs(t, err, tt.wantErr)
+                      return
+                  }
+
+                  require.NoError(t, err)
+                  assert.Equal(t, tt.customerID, order.CustomerID)
+                  assert.Equal(t, tt.wantStatus, order.Status)
+                  assert.NotEqual(t, uuid.Nil, order.ID)
+              })
+          }
+      }
+
+      func TestOrder_Confirm(t *testing.T) {
+          t.Parallel()
+
+          t.Run("should confirm pending order", func(t *testing.T) {
+              t.Parallel()
+
+              order := createTestOrder(t)
+
+              err := order.Confirm()
+
+              require.NoError(t, err)
+              assert.Equal(t, entity.OrderStatusConfirmed, order.Status)
+          })
+
+          t.Run("should fail to confirm non-pending order", func(t *testing.T) {
+              t.Parallel()
+
+              order := createTestOrder(t)
+              _ = order.Confirm()
+
+              err := order.Confirm()
+
+              require.ErrorIs(t, err, entity.ErrNotPending)
+          })
+      }
+
+      func createTestOrder(t *testing.T) *entity.Order {
+          t.Helper()
+          order, err := entity.NewOrder(uuid.New(), []entity.OrderItem{
+              {ID: uuid.New(), ProductID: uuid.New(), Quantity: 1, UnitPrice: 1000},
+          })
+          require.NoError(t, err)
+          return order
+      }
+
+  functionalOptions:
+    description: "Functional options pattern"
+    code: |
+      // pkg/server/server.go
+      package server
+
+      import (
+          "log/slog"
+          "net/http"
+          "time"
+      )
+
+      type Server struct {
+          addr         string
+          readTimeout  time.Duration
+          writeTimeout time.Duration
+          logger       *slog.Logger
+          handler      http.Handler
+      }
+
+      type Option func(*Server)
+
+      func WithAddr(addr string) Option {
+          return func(s *Server) {
+              s.addr = addr
+          }
+      }
+
+      func WithReadTimeout(d time.Duration) Option {
+          return func(s *Server) {
+              s.readTimeout = d
+          }
+      }
+
+      func WithWriteTimeout(d time.Duration) Option {
+          return func(s *Server) {
+              s.writeTimeout = d
+          }
+      }
+
+      func WithLogger(logger *slog.Logger) Option {
+          return func(s *Server) {
+              s.logger = logger
+          }
+      }
+
+      func NewServer(handler http.Handler, opts ...Option) *Server {
+          s := &Server{
+              addr:         ":8080",
+              readTimeout:  15 * time.Second,
+              writeTimeout: 15 * time.Second,
+              logger:       slog.Default(),
+              handler:      handler,
+          }
+
+          for _, opt := range opts {
+              opt(s)
+          }
+
+          return s
+      }
+
+      func (s *Server) Start() error {
+          srv := &http.Server{
+              Addr:         s.addr,
+              Handler:      s.handler,
+              ReadTimeout:  s.readTimeout,
+              WriteTimeout: s.writeTimeout,
+          }
+
+          s.logger.Info("starting server", slog.String("addr", s.addr))
+          return srv.ListenAndServe()
+      }
+
+# ----------------------------------------------------------------------------
+# ANTI-PATTERNS
+# ----------------------------------------------------------------------------
+antiPatterns:
+  panicInLibraries:
+    name: "Panic in Library Code"
+    description: "Using panic instead of returning errors"
+    bad: |
+      // ❌ Panic in library code
+      func ParseConfig(path string) Config {
+          data, err := os.ReadFile(path)
+          if err != nil {
+              panic(err)  // Don't panic!
+          }
+          var cfg Config
+          if err := json.Unmarshal(data, &cfg); err != nil {
+              panic(err)
+          }
+          return cfg
+      }
+    good: |
+      // ✅ Return errors
+      func ParseConfig(path string) (Config, error) {
+          data, err := os.ReadFile(path)
+          if err != nil {
+              return Config{}, fmt.Errorf("read config file: %w", err)
+          }
+
+          var cfg Config
+          if err := json.Unmarshal(data, &cfg); err != nil {
+              return Config{}, fmt.Errorf("parse config: %w", err)
+          }
+
+          return cfg, nil
+      }
+
+  ignoringErrors:
+    name: "Ignoring Errors"
+    description: "Discarding errors with _"
+    bad: |
+      // ❌ Ignoring errors
+      data, _ := json.Marshal(order)
+      _ = db.Save(order)
+      resp, _ := http.Get(url)
+    good: |
+      // ❌ Handle errors properly
+      data, err := json.Marshal(order)
+      if err != nil {
+          return fmt.Errorf("marshal order: %w", err)
+      }
+
+      if err := db.Save(order); err != nil {
+          return fmt.Errorf("save order: %w", err)
+      }
+
+      resp, err := http.Get(url)
+      if err != nil {
+          return fmt.Errorf("fetch data: %w", err)
+      }
+      defer resp.Body.Close()
+
+  goroutineLeaks:
+    name: "Goroutine Leaks"
+    description: "Starting goroutines without proper lifecycle management"
+    bad: |
+      // ❌ Goroutine leak - no way to stop
+      func StartWorker() {
+          go func() {
+              for {
+                  processItem(<-queue)
+              }
+          }()
+      }
+    good: |
+      // ✅ Goroutine with context cancellation
+      func StartWorker(ctx context.Context, queue <-chan Item) {
+          go func() {
+              for {
+                  select {
+                  case <-ctx.Done():
+                      return
+                  case item := <-queue:
+                      processItem(item)
+                  }
+              }
+          }()
+      }
+
+  noContextPropagation:
+    name: "Missing Context Propagation"
+    description: "Not passing context through the call chain"
+    bad: |
+      // ❌ No context propagation
+      func (s *Service) ProcessOrder(order Order) error {
+          user := s.userRepo.FindByID(order.UserID)  // No context!
+          return s.orderRepo.Save(order)              // No context!
+      }
+    good: |
+      // ✅ Context propagation
+      func (s *Service) ProcessOrder(ctx context.Context, order Order) error {
+          user, err := s.userRepo.FindByID(ctx, order.UserID)
+          if err != nil {
+              return fmt.Errorf("find user: %w", err)
+          }
+
+          if err := s.orderRepo.Save(ctx, order); err != nil {
+              return fmt.Errorf("save order: %w", err)
+          }
+
+          return nil
+      }
+
+  globalState:
+    name: "Global Mutable State"
+    description: "Using global variables for state"
+    bad: |
+      // ❌ Global mutable state
+      var db *sql.DB
+      var logger *slog.Logger
+
+      func init() {
+          db, _ = sql.Open("postgres", os.Getenv("DB_URL"))
+          logger = slog.Default()
+      }
+
+      func GetUser(id string) (*User, error) {
+          return db.Query("SELECT * FROM users WHERE id = $1", id)
+      }
+    good: |
+      // ✅ Dependency injection
+      type UserRepository struct {
+          db     *sql.DB
+          logger *slog.Logger
+      }
+
+      func NewUserRepository(db *sql.DB, logger *slog.Logger) *UserRepository {
+          return &UserRepository{db: db, logger: logger}
+      }
+
+      func (r *UserRepository) GetUser(ctx context.Context, id string) (*User, error) {
+          // ...
+      }
+
+  nakedReturns:
+    name: "Naked Returns in Long Functions"
+    description: "Using naked returns in non-trivial functions"
+    bad: |
+      // ❌ Naked return in long function
+      func ProcessOrder(id string) (order *Order, err error) {
+          order, err = repo.FindByID(id)
+          if err != nil {
+              return  // What are we returning?
+          }
+
+          // ... 50 more lines ...
+
+          order.Status = "processed"
+          return  // Unclear what's returned
+      }
+    good: |
+      // ✅ Explicit returns
+      func ProcessOrder(id string) (*Order, error) {
+          order, err := repo.FindByID(id)
+          if err != nil {
+              return nil, fmt.Errorf("find order: %w", err)
+          }
+
+          // ...
+
+          order.Status = "processed"
+          return order, nil
+      }
+
+  interfaceForNoReason:
+    name: "Premature Interface Abstraction"
+    description: "Creating interfaces before there's a need for them"
+    bad: |
+      // ❌ Interface with single implementation
+      type OrderServiceInterface interface {
+          Create(order Order) error
+          Get(id string) (*Order, error)
+      }
+
+      type OrderService struct{}
+
+      func (s *OrderService) Create(order Order) error { ... }
+      func (s *OrderService) Get(id string) (*Order, error) { ... }
+
+      // Only one implementation exists
+    good: |
+      // ✅ Define interface at consumer side when needed
+      // internal/usecase/create_order.go
+      type OrderRepository interface {  // Defined where it's used
+          Save(ctx context.Context, order *Order) error
+      }
+
+      type CreateOrderUseCase struct {
+          repo OrderRepository  // Accept interface
+      }
+
+      // internal/infrastructure/postgres/order_repo.go
+      type OrderRepository struct {  // Return concrete type
+          db *sql.DB
+      }
+
+  closingChannelsFromConsumer:
+    name: "Closing Channels from Consumer"
+    description: "Consumer closing a channel instead of producer"
+    bad: |
+      // ❌ Consumer closes channel
+      func consumer(ch chan int) {
+          for v := range ch {
+              process(v)
+          }
+          close(ch)  // Don't close from consumer!
+      }
+    good: |
+      // ✅ Producer closes channel
+      func producer(ch chan int) {
+          defer close(ch)  // Producer closes
+          for i := 0; i < 10; i++ {
+              ch <- i
+          }
+      }
+
+      func consumer(ch chan int) {
+          for v := range ch {  // Range handles closed channel
+              process(v)
+          }
+      }

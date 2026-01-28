@@ -1,0 +1,270 @@
+# ============================================================================
+# CORBAT MCP - Infrastructure Guardrails
+# ============================================================================
+# Rules and guidelines for infrastructure and DevOps work.
+# Key principle: Infrastructure as Code, automate everything.
+# ============================================================================
+
+taskType: infrastructure
+
+mandatory:
+  - "Infrastructure as Code (no manual changes)"
+  - "Version control all configurations"
+  - "Test in staging before production"
+  - "Document deployment procedures"
+  - "Implement proper secrets management"
+  - "Set up monitoring and alerting"
+
+recommended:
+  - "Use immutable infrastructure"
+  - "Implement health checks"
+  - "Set up proper monitoring/alerting"
+  - "Plan for rollback"
+  - "Use blue-green or canary deployments"
+  - "Implement auto-scaling"
+  - "Use container orchestration"
+  - "Implement proper logging aggregation"
+
+avoid:
+  - "Manual server configuration"
+  - "Snowflake servers"
+  - "Deploying directly to production"
+  - "Ignoring resource limits"
+  - "Hardcoded infrastructure values"
+  - "Single points of failure"
+  - "Insufficient monitoring"
+  - "Missing disaster recovery plan"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Plan"
+      description: "Design the infrastructure"
+      actions:
+        - "Understand requirements"
+        - "Design for scalability"
+        - "Plan for failure modes"
+        - "Consider cost implications"
+
+    - name: "Code"
+      description: "Write infrastructure as code"
+      actions:
+        - "Use appropriate IaC tool"
+        - "Follow module patterns"
+        - "Parameterize configurations"
+        - "Version control everything"
+
+    - name: "Test"
+      description: "Validate the infrastructure"
+      actions:
+        - "Run linting/validation"
+        - "Test in development environment"
+        - "Promote to staging"
+        - "Run integration tests"
+
+    - name: "Deploy"
+      description: "Apply changes safely"
+      actions:
+        - "Review changes before applying"
+        - "Deploy to staging first"
+        - "Verify staging works"
+        - "Deploy to production"
+
+    - name: "Monitor"
+      description: "Verify and observe"
+      actions:
+        - "Verify deployment succeeded"
+        - "Check monitoring dashboards"
+        - "Verify alerts are working"
+        - "Document any issues"
+
+# Infrastructure as Code tools
+iacTools:
+  terraform:
+    use: "Multi-cloud infrastructure"
+    bestPractices:
+      - "Use modules for reusability"
+      - "Use workspaces or separate state"
+      - "Lock state files"
+      - "Review plan before apply"
+      - "Use remote state"
+
+  kubernetes:
+    use: "Container orchestration"
+    bestPractices:
+      - "Use declarative configs"
+      - "Use namespaces for isolation"
+      - "Set resource limits"
+      - "Use liveness/readiness probes"
+      - "Use Helm or Kustomize"
+
+  ansible:
+    use: "Configuration management"
+    bestPractices:
+      - "Use roles for organization"
+      - "Use vault for secrets"
+      - "Test with molecule"
+      - "Idempotent playbooks"
+
+  pulumi:
+    use: "Infrastructure with real programming languages"
+    bestPractices:
+      - "Use type safety"
+      - "Organize in projects/stacks"
+      - "Use secrets provider"
+
+# Deployment strategies
+deploymentStrategies:
+  blueGreen:
+    description: "Two identical environments, switch traffic"
+    pros:
+      - "Zero downtime"
+      - "Easy rollback"
+      - "Full testing before switch"
+    cons:
+      - "Double infrastructure cost"
+      - "Database migrations complex"
+
+  canary:
+    description: "Gradual traffic shift"
+    pros:
+      - "Early detection of issues"
+      - "Minimal risk"
+      - "Gradual rollout"
+    cons:
+      - "Complex to implement"
+      - "Requires good monitoring"
+
+  rolling:
+    description: "Update instances one by one"
+    pros:
+      - "No extra infrastructure"
+      - "Gradual rollout"
+    cons:
+      - "Mixed versions during deploy"
+      - "Slower rollback"
+
+# Container best practices
+containers:
+  images:
+    - "Use minimal base images"
+    - "Don't run as root"
+    - "Use multi-stage builds"
+    - "Pin versions"
+    - "Scan for vulnerabilities"
+
+  kubernetes:
+    resources: |
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"
+
+    probes: |
+      livenessProbe:
+        httpGet:
+          path: /health/live
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 10
+
+      readinessProbe:
+        httpGet:
+          path: /health/ready
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 5
+
+    securityContext: |
+      securityContext:
+        runAsNonRoot: true
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+
+# Monitoring and observability
+observability:
+  metrics:
+    collect:
+      - "CPU/Memory usage"
+      - "Request rate"
+      - "Error rate"
+      - "Latency (p50, p95, p99)"
+      - "Saturation"
+
+    tools:
+      - "Prometheus"
+      - "Grafana"
+      - "Datadog"
+      - "CloudWatch"
+
+  logging:
+    practices:
+      - "Structured JSON logs"
+      - "Correlation IDs"
+      - "Appropriate log levels"
+      - "Centralized aggregation"
+
+    tools:
+      - "ELK Stack"
+      - "Loki"
+      - "CloudWatch Logs"
+
+  tracing:
+    practices:
+      - "Distributed tracing"
+      - "Trace critical paths"
+      - "Sample appropriately"
+
+    tools:
+      - "Jaeger"
+      - "Zipkin"
+      - "AWS X-Ray"
+
+  alerting:
+    practices:
+      - "Alert on symptoms, not causes"
+      - "Actionable alerts"
+      - "Avoid alert fatigue"
+      - "Define severity levels"
+      - "Document runbooks"
+
+# Disaster recovery
+disasterRecovery:
+  backups:
+    - "Automated backups"
+    - "Test restores regularly"
+    - "Off-site backup storage"
+    - "Defined retention policy"
+    - "Encrypted backups"
+
+  planning:
+    - "Define RTO (Recovery Time Objective)"
+    - "Define RPO (Recovery Point Objective)"
+    - "Document recovery procedures"
+    - "Test disaster recovery"
+    - "Multi-region if critical"
+
+# Security
+security:
+  network:
+    - "Use private networks"
+    - "Implement firewalls"
+    - "Use VPN for admin access"
+    - "Enable TLS everywhere"
+    - "Implement network segmentation"
+
+  access:
+    - "Use IAM roles, not keys"
+    - "Principle of least privilege"
+    - "Audit access regularly"
+    - "MFA for all admin access"
+    - "Rotate credentials"
+
+  scanning:
+    - "Scan containers for vulnerabilities"
+    - "Scan IaC for misconfigurations"
+    - "Regular security audits"
+    - "Dependency scanning"

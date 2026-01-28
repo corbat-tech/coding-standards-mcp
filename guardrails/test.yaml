@@ -1,0 +1,164 @@
+# ============================================================================
+# CORBAT MCP - Testing Guardrails
+# ============================================================================
+# Rules and guidelines for writing effective tests.
+# Focus on behavior verification, maintainability, and reliability.
+# ============================================================================
+
+taskType: test
+
+mandatory:
+  - "Follow Arrange-Act-Assert pattern"
+  - "One logical assertion per test"
+  - "Test names describe behavior (should_X_when_Y)"
+  - "Tests must be independent and repeatable"
+  - "Tests must be deterministic (no flakiness)"
+
+recommended:
+  - "Use test fixtures for complex setup"
+  - "Mock external dependencies"
+  - "Test edge cases and error conditions"
+  - "Use parameterized tests for variations"
+  - "Test both happy path and error paths"
+  - "Keep tests fast (< 100ms for unit tests)"
+  - "Use descriptive assertion messages"
+
+avoid:
+  - "Testing implementation details"
+  - "Flaky tests"
+  - "Tests that depend on order"
+  - "Assertions without clear purpose"
+  - "Testing private methods directly"
+  - "Excessive mocking"
+  - "Tests that require external services"
+  - "Sleep/wait in tests"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Identify"
+      description: "Determine what needs to be tested"
+      actions:
+        - "Identify the behavior to verify"
+        - "List the scenarios to cover"
+        - "Identify edge cases"
+        - "Consider error conditions"
+
+    - name: "Structure"
+      description: "Organize the test properly"
+      actions:
+        - "Choose descriptive test name"
+        - "Set up test fixtures if needed"
+        - "Identify what to mock"
+        - "Plan assertions"
+
+    - name: "Write"
+      description: "Implement the test"
+      actions:
+        - "Arrange: set up preconditions"
+        - "Act: execute the behavior"
+        - "Assert: verify the outcome"
+        - "Clean up if needed"
+
+    - name: "Verify"
+      description: "Ensure test quality"
+      actions:
+        - "Test should fail when code is wrong"
+        - "Test should pass when code is right"
+        - "Test is readable and maintainable"
+        - "Test is fast and reliable"
+
+# Test patterns
+patterns:
+  arrangeActAssert:
+    description: "Standard test structure"
+    example: |
+      // Arrange
+      val calculator = Calculator()
+
+      // Act
+      val result = calculator.add(2, 3)
+
+      // Assert
+      assertEquals(5, result)
+
+  givenWhenThen:
+    description: "BDD-style test structure"
+    example: |
+      // Given a calculator
+      val calculator = Calculator()
+
+      // When adding two numbers
+      val result = calculator.add(2, 3)
+
+      // Then the sum is returned
+      assertEquals(5, result)
+
+  parameterized:
+    description: "Testing multiple inputs"
+    example: |
+      @ParameterizedTest
+      @CsvSource(["1,1,2", "2,3,5", "0,0,0"])
+      fun shouldAddNumbers(a: Int, b: Int, expected: Int) {
+          assertEquals(expected, calculator.add(a, b))
+      }
+
+  builderPattern:
+    description: "Creating test data with builders"
+    example: |
+      val order = OrderBuilder()
+          .withCustomer("John")
+          .withItem("Product", 2)
+          .build()
+
+# Test types
+testTypes:
+  unit:
+    purpose: "Test individual components in isolation"
+    characteristics:
+      - "Fast (< 100ms)"
+      - "No external dependencies"
+      - "Mock collaborators"
+      - "Test single behavior"
+
+  integration:
+    purpose: "Test component interactions"
+    characteristics:
+      - "May use real databases (testcontainers)"
+      - "Test workflows"
+      - "Slower than unit tests"
+      - "Verify integrations work"
+
+  e2e:
+    purpose: "Test complete user scenarios"
+    characteristics:
+      - "Test from user perspective"
+      - "Use real system"
+      - "Slowest tests"
+      - "Verify critical paths"
+
+# Anti-patterns to avoid
+antiPatterns:
+  testingImplementation:
+    description: "Tests break when refactoring"
+    solution: "Test behavior, not implementation"
+
+  flakyTests:
+    description: "Tests fail randomly"
+    solution: "Remove timing dependencies, use proper waits"
+
+  testInterdependence:
+    description: "Tests depend on each other"
+    solution: "Each test sets up its own state"
+
+  assertionRoulette:
+    description: "Multiple assertions without messages"
+    solution: "One assertion per test or descriptive messages"
+
+  slowTests:
+    description: "Tests take too long"
+    solution: "Mock external services, optimize setup"
+
+  testCodeDuplication:
+    description: "Same setup in many tests"
+    solution: "Use fixtures, builders, or setup methods"

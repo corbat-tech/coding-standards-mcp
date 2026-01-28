@@ -1,0 +1,508 @@
+# ============================================================================
+# CORBAT MCP - Rust Profile
+# ============================================================================
+# Production-ready standards for Rust backend applications.
+# Based on Rust idioms, ownership patterns, and the Rust API Guidelines.
+# ============================================================================
+
+name: "Rust Backend Standards"
+description: "Production-ready standards for Rust backend with ownership patterns, error handling, and idiomatic Rust"
+
+# ----------------------------------------------------------------------------
+# ARCHITECTURE
+# ----------------------------------------------------------------------------
+architecture:
+  type: clean
+  enforceLayerDependencies: true
+  layers:
+    - name: domain
+      description: "Core business logic. Pure Rust with no external dependencies. Contains entities, value objects, and traits."
+      allowedDependencies: []
+      modules:
+        - "src/domain"
+        - "src/domain/entities"
+        - "src/domain/value_objects"
+        - "src/domain/errors"
+        - "src/domain/traits"
+
+    - name: application
+      description: "Use cases and application services. Orchestrates domain objects."
+      allowedDependencies:
+        - domain
+      modules:
+        - "src/application"
+        - "src/application/use_cases"
+        - "src/application/services"
+        - "src/application/ports"
+
+    - name: infrastructure
+      description: "External adapters: HTTP handlers, database repositories, external APIs."
+      allowedDependencies:
+        - domain
+        - application
+      modules:
+        - "src/infrastructure"
+        - "src/infrastructure/http"
+        - "src/infrastructure/persistence"
+        - "src/infrastructure/external"
+
+# ----------------------------------------------------------------------------
+# OWNERSHIP & BORROWING
+# ----------------------------------------------------------------------------
+ownership:
+  enabled: true
+
+  patterns:
+    preferBorrowing: true
+    useSlicesOverVecs: true
+    avoidUnnecessaryClone: true
+    useRcArcJudiciously: true
+    examples:
+      - "Accept &str instead of String when not taking ownership"
+      - "Accept &[T] instead of Vec<T> or &Vec<T>"
+      - "Return owned types from constructors"
+      - "Use Cow<str> for flexible borrowing"
+
+  lifetimes:
+    elisionWhenPossible: true
+    explicitWhenClear: true
+    avoidStaticUnlessNeeded: true
+    examples:
+      - "fn process(data: &str) -> &str // elision"
+      - "fn longest<'a>(x: &'a str, y: &'a str) -> &'a str // explicit"
+
+  smartPointers:
+    box: "Heap allocation, recursive types"
+    rc: "Shared ownership, single-threaded"
+    arc: "Shared ownership, multi-threaded"
+    refCell: "Interior mutability, single-threaded"
+    mutex: "Interior mutability, multi-threaded"
+    rwLock: "Multiple readers OR single writer"
+
+# ----------------------------------------------------------------------------
+# ERROR HANDLING
+# ----------------------------------------------------------------------------
+errorHandling:
+  format: "Result<T, E> and Option<T>"
+
+  libraries:
+    thiserror: "Library error types (custom Error derive)"
+    anyhow: "Application error handling (context, backtraces)"
+
+  patterns:
+    resultForFallible: true
+    optionForAbsence: true
+    questionMarkPropagation: true
+    contextWrapping: true
+    noPanicInLibraries: true
+
+  customErrors:
+    approach: "thiserror derive"
+    example: |
+      #[derive(Debug, thiserror::Error)]
+      pub enum OrderError {
+          #[error("Order {0} not found")]
+          NotFound(OrderId),
+
+          #[error("Invalid order status transition from {from} to {to}")]
+          InvalidStatusTransition { from: OrderStatus, to: OrderStatus },
+
+          #[error("Order validation failed: {0}")]
+          Validation(String),
+
+          #[error(transparent)]
+          Database(#[from] sqlx::Error),
+      }
+
+  applicationErrors:
+    approach: "anyhow for context"
+    example: |
+      async fn process_order(id: OrderId) -> anyhow::Result<Order> {
+          let order = repository
+              .find_by_id(id)
+              .await
+              .context("Failed to fetch order from database")?
+              .ok_or_else(|| anyhow!("Order {} not found", id))?;
+
+          Ok(order)
+      }
+
+  avoid:
+    - "panic! in library code"
+    - "unwrap() without certainty"
+    - "expect() without meaningful message"
+    - "Ignoring Result with let _ ="
+
+# ----------------------------------------------------------------------------
+# CODE QUALITY
+# ----------------------------------------------------------------------------
+codeQuality:
+  maxMethodLines: 30
+  maxClassLines: 300
+  maxFileLines: 500
+  maxMethodParameters: 4
+  maxCyclomaticComplexity: 10
+  requireDocumentation: true
+  requireTests: true
+  minimumTestCoverage: 70
+
+  principles:
+    - "Make illegal states unrepresentable"
+    - "Parse, don't validate"
+    - "Prefer iterators over loops"
+    - "Leverage the type system"
+    - "Zero-cost abstractions"
+    - "Fearless concurrency"
+
+  linting:
+    clippy:
+      enabled: true
+      pedantic: true
+      deny:
+        - "clippy::unwrap_used"
+        - "clippy::expect_used"
+        - "clippy::panic"
+        - "clippy::todo"
+      allow:
+        - "clippy::module_name_repetitions"
+    rustfmt:
+      enabled: true
+      config: "rustfmt.toml"
+
+# ----------------------------------------------------------------------------
+# NAMING CONVENTIONS
+# ----------------------------------------------------------------------------
+naming:
+  general:
+    module: snake_case
+    type: PascalCase
+    trait: PascalCase
+    function: snake_case
+    method: snake_case
+    variable: snake_case
+    constant: SCREAMING_SNAKE_CASE
+    lifetime: lowercase_short
+    typeParameter: PascalCase_short
+
+  conventions:
+    constructors: "new, with_*, from_*"
+    conversions: "into_*, to_*, as_*"
+    getters: "field_name (no get_ prefix)"
+    setters: "set_field_name"
+    predicates: "is_*, has_*"
+    fallible: "try_*"
+    async: "No special suffix"
+
+  testing:
+    testModule: "tests"
+    testFunction: "test_function_scenario"
+    integrationTest: "tests/*.rs"
+
+# ----------------------------------------------------------------------------
+# TESTING
+# ----------------------------------------------------------------------------
+testing:
+  framework: "built-in (#[test])"
+  assertionLibrary: "built-in (assert!, assert_eq!)"
+  mockingLibrary: "mockall"
+  propertyTesting: "proptest"
+
+  types:
+    unit:
+      location: "Same file, #[cfg(test)] mod tests"
+      coverage: 70
+      patterns:
+        - "arrange_act_assert"
+        - "given_when_then"
+
+    integration:
+      location: "tests/*.rs"
+      useTestContainers: true
+      example: |
+        #[tokio::test]
+        async fn test_create_order_integration() {
+            let db = TestDatabase::new().await;
+            let app = TestApp::new(db.pool()).await;
+
+            let response = app
+                .post("/api/orders")
+                .json(&create_order_request())
+                .send()
+                .await;
+
+            assert_eq!(response.status(), StatusCode::CREATED);
+        }
+
+    documentation:
+      enabled: true
+      runWithTests: true
+      example: |
+        /// Creates a new order with the given items.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// let order = Order::new(customer_id, vec![item]);
+        /// assert!(order.is_pending());
+        /// ```
+
+  patterns:
+    rstest: true
+    parameterized: true
+    fixtures: true
+    example: |
+      #[rstest]
+      #[case(vec![], 0)]
+      #[case(vec![10], 10)]
+      #[case(vec![1, 2, 3], 6)]
+      fn test_calculate_total(#[case] items: Vec<i32>, #[case] expected: i32) {
+          assert_eq!(calculate_total(&items), expected);
+      }
+
+  testcontainers:
+    enabled: true
+    containers:
+      - "postgres"
+      - "redis"
+      - "kafka"
+
+# ----------------------------------------------------------------------------
+# ASYNC RUNTIME
+# ----------------------------------------------------------------------------
+async:
+  runtime: "Tokio"
+  patterns:
+    asyncAwait: true
+    spawnForConcurrency: true
+    selectForMultiple: true
+    channelsForCommunication: true
+
+  tokio:
+    features:
+      - "rt-multi-thread"
+      - "macros"
+      - "time"
+      - "sync"
+    macros:
+      - "#[tokio::main]"
+      - "#[tokio::test]"
+
+  avoid:
+    - "Blocking in async context"
+    - "spawn_blocking for CPU-bound"
+    - "Unbounded channels in production"
+
+# ----------------------------------------------------------------------------
+# HTTP/WEB
+# ----------------------------------------------------------------------------
+httpFramework:
+  preferred: "Axum"
+  alternatives:
+    - "Actix-web"
+    - "Warp"
+
+  axumPatterns:
+    extractors: true
+    state: true
+    middleware: true
+    errorHandling: true
+    example: |
+      async fn create_order(
+          State(app_state): State<AppState>,
+          Json(request): Json<CreateOrderRequest>,
+      ) -> Result<Json<OrderResponse>, AppError> {
+          let order = app_state
+              .order_service
+              .create_order(request.into())
+              .await?;
+
+          Ok(Json(order.into()))
+      }
+
+  middleware:
+    - "tower::ServiceBuilder"
+    - "TraceLayer"
+    - "TimeoutLayer"
+    - "CorsLayer"
+
+  gracefulShutdown:
+    enabled: true
+    signalHandling: true
+
+# ----------------------------------------------------------------------------
+# DATABASE
+# ----------------------------------------------------------------------------
+database:
+  driver: "SQLx"
+  features:
+    - "Compile-time query checking"
+    - "Async/await"
+    - "Connection pooling"
+
+  patterns:
+    repository: true
+    preparedStatements: true
+    transactions: true
+    example: |
+      pub async fn find_by_id(&self, id: OrderId) -> Result<Option<Order>, sqlx::Error> {
+          sqlx::query_as!(
+              OrderRow,
+              r#"SELECT id, customer_id, status as "status: OrderStatus", total
+                 FROM orders WHERE id = $1"#,
+              id.0
+          )
+          .fetch_optional(&self.pool)
+          .await
+          .map(|row| row.map(Order::from))
+      }
+
+  migrations:
+    tool: "sqlx-cli"
+    location: "migrations"
+    naming: "{timestamp}_{description}.sql"
+
+# ----------------------------------------------------------------------------
+# OBSERVABILITY
+# ----------------------------------------------------------------------------
+observability:
+  enabled: true
+
+  logging:
+    framework: "tracing"
+    format: "JSON"
+    structuredLogging: true
+    subscribers:
+      - "tracing_subscriber"
+      - "tracing_bunyan_formatter"
+    spans: true
+    example: |
+      #[tracing::instrument(skip(pool), fields(order_id = %id))]
+      pub async fn get_order(pool: &PgPool, id: OrderId) -> Result<Order> {
+          tracing::info!("Fetching order");
+          // ...
+      }
+
+  metrics:
+    framework: "metrics + metrics-exporter-prometheus"
+    types:
+      - "counter!"
+      - "gauge!"
+      - "histogram!"
+
+  tracing:
+    framework: "tracing + opentelemetry"
+    propagation: "W3C"
+    exporters:
+      - "Jaeger"
+      - "OTLP"
+
+  healthChecks:
+    endpoints:
+      - "/health"
+      - "/health/ready"
+      - "/health/live"
+
+# ----------------------------------------------------------------------------
+# PROJECT STRUCTURE
+# ----------------------------------------------------------------------------
+projectStructure:
+  layout: "Workspace with multiple crates"
+
+  example: |
+    myapp/
+    ├── Cargo.toml (workspace)
+    ├── crates/
+    │   ├── domain/
+    │   │   ├── Cargo.toml
+    │   │   └── src/lib.rs
+    │   ├── application/
+    │   │   ├── Cargo.toml
+    │   │   └── src/lib.rs
+    │   ├── infrastructure/
+    │   │   ├── Cargo.toml
+    │   │   └── src/lib.rs
+    │   └── api/
+    │       ├── Cargo.toml
+    │       └── src/main.rs
+    ├── migrations/
+    └── tests/
+
+  cargoFeatures:
+    useFeaturesForOptional: true
+    defaultFeatures: "minimal"
+    example: |
+      [features]
+      default = []
+      postgres = ["sqlx/postgres"]
+      mysql = ["sqlx/mysql"]
+      full = ["postgres", "mysql"]
+
+# ----------------------------------------------------------------------------
+# SERDE & SERIALIZATION
+# ----------------------------------------------------------------------------
+serialization:
+  library: "serde"
+  formats:
+    - "serde_json"
+    - "toml"
+    - "yaml"
+
+  patterns:
+    deriveForDTOs: true
+    customSerializers: true
+    renaming: true
+    example: |
+      #[derive(Debug, Serialize, Deserialize)]
+      #[serde(rename_all = "camelCase")]
+      pub struct OrderResponse {
+          pub id: OrderId,
+          pub customer_id: CustomerId,
+          #[serde(with = "time::serde::rfc3339")]
+          pub created_at: OffsetDateTime,
+          pub status: OrderStatus,
+      }
+
+# ----------------------------------------------------------------------------
+# TECHNOLOGIES
+# ----------------------------------------------------------------------------
+technologies:
+  - name: rust
+    version: "1.75+"
+    edition: "2021"
+    specificRules:
+      useClippy: true
+      useRustfmt: true
+      denyUnsafeUnlessDocumented: true
+      preferIterators: true
+      useResultForErrors: true
+
+  - name: axum
+    version: "0.7+"
+    specificRules:
+      useExtractors: true
+      useState: true
+      useTowerMiddleware: true
+      useTypedRoutes: true
+
+  - name: sqlx
+    version: "0.7+"
+    specificRules:
+      useCompileTimeChecking: true
+      useQueryAs: true
+      useTransactions: true
+      usePooling: true
+
+  - name: tokio
+    version: "1.0+"
+    specificRules:
+      useMultiThread: true
+      useMacros: true
+      useSpawnForConcurrency: true
+      avoidBlockingInAsync: true
+
+  - name: testing
+    specificRules:
+      useRstest: true
+      usePropertyTesting: true
+      useTestcontainers: true
+      documentationTests: true

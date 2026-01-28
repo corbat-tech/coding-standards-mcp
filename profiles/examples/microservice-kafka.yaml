@@ -1,0 +1,122 @@
+# ============================================================================
+# CORBAT MCP - Microservice with Kafka Profile (Example)
+# ============================================================================
+# For event-driven microservices using Kafka.
+# Includes patterns for domain events, sagas, and messaging.
+#
+# Usage:
+#   1. Copy this file to profiles/custom/microservice-kafka.yaml
+#   2. Or reference in .corbat.json: { "profile": "microservice-kafka" }
+# ============================================================================
+
+name: "Microservice Kafka"
+description: "Event-driven microservice patterns with Apache Kafka"
+extends: "java-spring-backend"
+
+# Event-driven architecture enabled
+eventDriven:
+  enabled: true
+  approach: "domain-events"
+  patterns:
+    domainEvents:
+      suffix: "Event"
+      pastTense: true
+      examples:
+        - "OrderCreatedEvent"
+        - "PaymentProcessedEvent"
+        - "UserRegisteredEvent"
+    eventPublishing:
+      interface: "DomainEventPublisher"
+      async: true
+    messaging:
+      broker: "kafka"
+      topicNaming: "{domain}.{aggregate}.{event}"
+      examples:
+        - "orders.order.created"
+        - "payments.payment.processed"
+
+# CQRS enabled for read/write separation
+cqrs:
+  enabled: true
+  separation: "logical"
+  patterns:
+    commands:
+      suffix: "Command"
+      handler: "CommandHandler"
+      examples:
+        - "CreateOrderCommand"
+        - "ProcessPaymentCommand"
+    queries:
+      suffix: "Query"
+      handler: "QueryHandler"
+      examples:
+        - "GetOrderByIdQuery"
+        - "ListOrdersQuery"
+
+# Enhanced observability for distributed systems
+observability:
+  enabled: true
+  logging:
+    framework: "SLF4J + Logback"
+    format: "JSON"
+    structuredLogging: true
+    correlationId: true
+    mdc:
+      - "correlationId"
+      - "userId"
+      - "tenantId"
+      - "traceId"
+      - "spanId"
+  metrics:
+    framework: "Micrometer"
+    registry: "Prometheus"
+    customMetrics:
+      - type: "Counter"
+        examples:
+          - "events_published_total"
+          - "events_consumed_total"
+      - type: "Histogram"
+        examples:
+          - "event_processing_duration"
+  tracing:
+    framework: "OpenTelemetry"
+    propagation: "W3C"
+    exporters:
+      - "otlp"
+      - "jaeger"
+
+# Additional technologies for Kafka
+technologies:
+  - name: "Apache Kafka"
+    version: "3.6+"
+    specificRules:
+      useSpringKafka: true
+      enableIdempotentProducer: true
+      useExactlyOnceSemantics: true
+  - name: "Schema Registry"
+    version: "7.5+"
+    specificRules:
+      useAvro: true
+      backwardCompatibility: true
+  - name: "Kafka Streams"
+    tool: "spring-cloud-stream"
+    specificRules:
+      useStatefulOperations: "with-caution"
+
+# Naming conventions for events
+naming:
+  general:
+    classes: "PascalCase"
+    methods: "camelCase"
+    constants: "SCREAMING_SNAKE_CASE"
+  suffixes:
+    commands: "Command"
+    commandHandlers: "CommandHandler"
+    queries: "Query"
+    queryHandlers: "QueryHandler"
+    events: "Event"
+    eventHandlers: "EventHandler"
+    sagas: "Saga"
+    projections: "Projection"
+    consumers: "Consumer"
+    producers: "Producer"

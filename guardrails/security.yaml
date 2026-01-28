@@ -1,0 +1,236 @@
+# ============================================================================
+# CORBAT MCP - Security Guardrails
+# ============================================================================
+# Rules and guidelines for security-related work.
+# Based on OWASP guidelines and security best practices.
+# ============================================================================
+
+taskType: security
+
+mandatory:
+  - "Validate ALL user inputs"
+  - "Use parameterized queries (prevent SQL injection)"
+  - "Escape output (prevent XSS)"
+  - "Apply principle of least privilege"
+  - "Never log sensitive data"
+  - "Use HTTPS for all communications"
+  - "Implement proper authentication and authorization"
+
+recommended:
+  - "Use established security libraries"
+  - "Implement rate limiting"
+  - "Add security headers"
+  - "Implement proper session management"
+  - "Use secure password hashing (bcrypt, argon2)"
+  - "Implement audit logging"
+  - "Use secrets management (not env vars)"
+  - "Implement input size limits"
+
+avoid:
+  - "Rolling your own crypto"
+  - "Hardcoded secrets"
+  - "Trusting client-side validation alone"
+  - "Exposing stack traces to users"
+  - "Using deprecated crypto algorithms"
+  - "Storing passwords in plain text"
+  - "Using GET for sensitive operations"
+  - "Disabling security features for convenience"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Threat Model"
+      description: "Identify potential threats"
+      actions:
+        - "Identify assets to protect"
+        - "Identify potential attackers"
+        - "Identify attack vectors"
+        - "Prioritize by risk"
+
+    - name: "Design"
+      description: "Plan security controls"
+      actions:
+        - "Choose appropriate controls"
+        - "Follow defense in depth"
+        - "Plan for failure modes"
+        - "Consider compliance requirements"
+
+    - name: "Implement"
+      description: "Apply security controls"
+      actions:
+        - "Use established libraries"
+        - "Follow secure coding practices"
+        - "Implement proper error handling"
+        - "Add security tests"
+
+    - name: "Test"
+      description: "Verify security"
+      actions:
+        - "Perform security testing"
+        - "Test edge cases"
+        - "Test error handling"
+        - "Consider penetration testing"
+
+    - name: "Monitor"
+      description: "Ongoing security"
+      actions:
+        - "Set up security monitoring"
+        - "Implement alerting"
+        - "Plan incident response"
+        - "Keep dependencies updated"
+
+# OWASP Top 10 guidance
+owaspTop10:
+  injection:
+    description: "SQL, NoSQL, OS, LDAP injection"
+    prevention:
+      - "Use parameterized queries"
+      - "Use ORMs properly"
+      - "Validate and sanitize inputs"
+      - "Use stored procedures"
+    example: |
+      // BAD
+      query = "SELECT * FROM users WHERE id = " + userId
+
+      // GOOD
+      query = "SELECT * FROM users WHERE id = ?"
+      statement.setString(1, userId)
+
+  brokenAuth:
+    description: "Authentication and session issues"
+    prevention:
+      - "Use established auth frameworks"
+      - "Implement MFA"
+      - "Use secure session management"
+      - "Implement account lockout"
+    example: |
+      // Use bcrypt for password hashing
+      hashedPassword = bcrypt.hash(password, 12)
+
+  sensitiveData:
+    description: "Exposure of sensitive data"
+    prevention:
+      - "Encrypt data at rest"
+      - "Use TLS for data in transit"
+      - "Don't store unnecessary data"
+      - "Use proper key management"
+
+  xxe:
+    description: "XML External Entities"
+    prevention:
+      - "Disable DTD processing"
+      - "Use less complex formats (JSON)"
+      - "Validate XML input"
+
+  brokenAccessControl:
+    description: "Unauthorized access"
+    prevention:
+      - "Implement proper authorization"
+      - "Check permissions on every request"
+      - "Use deny by default"
+      - "Log access failures"
+
+  securityMisconfiguration:
+    description: "Insecure default configurations"
+    prevention:
+      - "Remove default credentials"
+      - "Disable unnecessary features"
+      - "Keep software updated"
+      - "Review configurations"
+
+  xss:
+    description: "Cross-Site Scripting"
+    prevention:
+      - "Escape output"
+      - "Use Content Security Policy"
+      - "Use auto-escaping templates"
+      - "Validate input"
+    example: |
+      // BAD
+      innerHTML = userInput
+
+      // GOOD
+      textContent = userInput
+      // Or use proper escaping library
+
+  insecureDeserialization:
+    description: "Unsafe deserialization"
+    prevention:
+      - "Don't accept serialized objects from untrusted sources"
+      - "Use simple data formats (JSON)"
+      - "Implement integrity checks"
+      - "Isolate deserialization"
+
+  vulnerableComponents:
+    description: "Using components with known vulnerabilities"
+    prevention:
+      - "Keep dependencies updated"
+      - "Monitor security advisories"
+      - "Use dependency scanning"
+      - "Remove unused dependencies"
+
+  insufficientLogging:
+    description: "Lack of proper logging and monitoring"
+    prevention:
+      - "Log security events"
+      - "Implement alerting"
+      - "Ensure logs are tamper-proof"
+      - "Test incident response"
+
+# Security headers
+securityHeaders:
+  required:
+    - name: "Content-Security-Policy"
+      description: "Prevents XSS and data injection"
+      example: "default-src 'self'"
+
+    - name: "X-Content-Type-Options"
+      description: "Prevents MIME type sniffing"
+      example: "nosniff"
+
+    - name: "X-Frame-Options"
+      description: "Prevents clickjacking"
+      example: "DENY"
+
+    - name: "Strict-Transport-Security"
+      description: "Forces HTTPS"
+      example: "max-age=31536000; includeSubDomains"
+
+  recommended:
+    - name: "Referrer-Policy"
+      description: "Controls referrer information"
+      example: "strict-origin-when-cross-origin"
+
+    - name: "Permissions-Policy"
+      description: "Controls browser features"
+      example: "geolocation=(), microphone=()"
+
+# Secrets management
+secretsManagement:
+  neverDo:
+    - "Hardcode secrets in code"
+    - "Commit secrets to version control"
+    - "Log secrets"
+    - "Pass secrets via URL parameters"
+
+  bestPractices:
+    - "Use secrets manager (Vault, AWS Secrets Manager)"
+    - "Rotate secrets regularly"
+    - "Use different secrets per environment"
+    - "Audit secret access"
+    - "Use short-lived credentials"
+
+# Password requirements
+passwords:
+  storage:
+    - "Use bcrypt, scrypt, or argon2"
+    - "Never store plain text"
+    - "Use unique salt per password"
+    - "Use appropriate work factor"
+
+  policy:
+    - "Minimum 12 characters"
+    - "Allow passphrases"
+    - "Check against breached password lists"
+    - "Implement rate limiting"
+    - "Don't require complexity rules (they don't help)"

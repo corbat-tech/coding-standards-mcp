@@ -173,7 +173,7 @@ async function handleGetContext(
   }
 
   // Get guardrails and rules
-  const guardrails = getGuardrails(taskType, projectConfig);
+  const guardrails = await getGuardrails(taskType, projectConfig);
   const projectRules = getProjectRules(taskType, projectConfig);
 
   // Build concise, scannable output
@@ -284,7 +284,7 @@ async function handleValidate(
     };
   }
 
-  const guardrails = task_type ? getGuardrails(task_type, null) : null;
+  const guardrails = task_type ? await getGuardrails(task_type, null) : null;
 
   const lines: string[] = [
     '# Code Validation',

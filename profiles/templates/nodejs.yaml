@@ -336,3 +336,597 @@ security:
 # ├── integration/
 # ├── e2e/
 # └── fixtures/
+
+# ----------------------------------------------------------------------------
+# CODE EXAMPLES
+# ----------------------------------------------------------------------------
+codeExamples:
+  entity:
+    description: "Domain entity with validation"
+    code: |
+      // domain/entities/order.ts
+      import { OrderId } from '../value-objects/order-id.js';
+      import { Money } from '../value-objects/money.js';
+      import { OrderItem } from './order-item.js';
+      import { DomainError } from '../errors/domain-error.js';
+
+      export class Order {
+        private constructor(
+          public readonly id: OrderId,
+          public readonly customerId: string,
+          private readonly items: OrderItem[],
+          public readonly status: OrderStatus,
+          public readonly createdAt: Date
+        ) {}
+
+        static create(customerId: string, items: OrderItem[]): Order {
+          if (items.length === 0) {
+            throw new DomainError('Order must have at least one item');
+          }
+          return new Order(
+            OrderId.generate(),
+            customerId,
+            items,
+            'PENDING',
+            new Date()
+          );
+        }
+
+        get total(): Money {
+          return this.items.reduce(
+            (sum, item) => sum.add(item.subtotal),
+            Money.zero('USD')
+          );
+        }
+
+        addItem(item: OrderItem): Order {
+          if (this.status !== 'PENDING') {
+            throw new DomainError('Cannot add items to confirmed order');
+          }
+          return new Order(
+            this.id,
+            this.customerId,
+            [...this.items, item],
+            this.status,
+            this.createdAt
+          );
+        }
+
+        confirm(): Order {
+          if (this.status !== 'PENDING') {
+            throw new DomainError('Order is not pending');
+          }
+          return new Order(
+            this.id,
+            this.customerId,
+            this.items,
+            'CONFIRMED',
+            this.createdAt
+          );
+        }
+      }
+
+  valueObject:
+    description: "Immutable value object"
+    code: |
+      // domain/value-objects/money.ts
+      import { DomainError } from '../errors/domain-error.js';
+
+      export class Money {
+        private constructor(
+          public readonly amount: number,
+          public readonly currency: string
+        ) {
+          if (amount < 0) {
+            throw new DomainError('Amount cannot be negative');
+          }
+        }
+
+        static of(amount: number, currency: string): Money {
+          return new Money(amount, currency);
+        }
+
+        static zero(currency: string): Money {
+          return new Money(0, currency);
+        }
+
+        add(other: Money): Money {
+          this.ensureSameCurrency(other);
+          return new Money(this.amount + other.amount, this.currency);
+        }
+
+        multiply(factor: number): Money {
+          return new Money(this.amount * factor, this.currency);
+        }
+
+        equals(other: Money): boolean {
+          return this.amount === other.amount && this.currency === other.currency;
+        }
+
+        private ensureSameCurrency(other: Money): void {
+          if (this.currency !== other.currency) {
+            throw new DomainError(`Currency mismatch: ${this.currency} vs ${other.currency}`);
+          }
+        }
+
+        toString(): string {
+          return `${this.currency} ${this.amount.toFixed(2)}`;
+        }
+      }
+
+  useCase:
+    description: "Application use case with dependency injection"
+    code: |
+      // application/use-cases/create-order.use-case.ts
+      import { Order } from '../../domain/entities/order.js';
+      import { OrderRepository } from '../ports/order-repository.port.js';
+      import { EventPublisher } from '../ports/event-publisher.port.js';
+      import { Logger } from '../ports/logger.port.js';
+      import { CreateOrderDto } from '../dtos/create-order.dto.js';
+
+      export class CreateOrderUseCase {
+        constructor(
+          private readonly orderRepository: OrderRepository,
+          private readonly eventPublisher: EventPublisher,
+          private readonly logger: Logger
+        ) {}
+
+        async execute(dto: CreateOrderDto): Promise<Order> {
+          this.logger.info('Creating order', { customerId: dto.customerId });
+
+          const items = dto.items.map(item =>
+            OrderItem.create(item.productId, item.quantity, item.unitPrice)
+          );
+
+          const order = Order.create(dto.customerId, items);
+
+          await this.orderRepository.save(order);
+
+          await this.eventPublisher.publish({
+            type: 'OrderCreated',
+            payload: { orderId: order.id.value, customerId: order.customerId }
+          });
+
+          this.logger.info('Order created', { orderId: order.id.value });
+
+          return order;
+        }
+      }
+
+  controller:
+    description: "HTTP controller with validation"
+    code: |
+      // infrastructure/http/controllers/order.controller.ts
+      import { Router, Request, Response, NextFunction } from 'express';
+      import { z } from 'zod';
+      import { CreateOrderUseCase } from '../../../application/use-cases/create-order.use-case.js';
+      import { GetOrderUseCase } from '../../../application/use-cases/get-order.use-case.js';
+      import { validateBody } from '../middlewares/validation.middleware.js';
+
+      const createOrderSchema = z.object({
+        customerId: z.string().uuid(),
+        items: z.array(z.object({
+          productId: z.string().uuid(),
+          quantity: z.number().int().positive(),
+          unitPrice: z.number().positive()
+        })).min(1)
+      });
+
+      export class OrderController {
+        public readonly router = Router();
+
+        constructor(
+          private readonly createOrderUseCase: CreateOrderUseCase,
+          private readonly getOrderUseCase: GetOrderUseCase
+        ) {
+          this.router.post('/', validateBody(createOrderSchema), this.create);
+          this.router.get('/:id', this.getById);
+        }
+
+        private create = async (req: Request, res: Response, next: NextFunction) => {
+          try {
+            const order = await this.createOrderUseCase.execute(req.body);
+            res.status(201).json({
+              id: order.id.value,
+              status: order.status,
+              total: order.total.toString()
+            });
+          } catch (error) {
+            next(error);
+          }
+        };
+
+        private getById = async (req: Request, res: Response, next: NextFunction) => {
+          try {
+            const order = await this.getOrderUseCase.execute(req.params.id);
+            res.json(order);
+          } catch (error) {
+            next(error);
+          }
+        };
+      }
+
+  repository:
+    description: "Repository implementation with Prisma"
+    code: |
+      // infrastructure/database/repositories/prisma-order.repository.ts
+      import { PrismaClient } from '@prisma/client';
+      import { Order } from '../../../domain/entities/order.js';
+      import { OrderRepository } from '../../../application/ports/order-repository.port.js';
+      import { OrderMapper } from '../mappers/order.mapper.js';
+      import { EntityNotFoundError } from '../../../domain/errors/entity-not-found.error.js';
+
+      export class PrismaOrderRepository implements OrderRepository {
+        constructor(private readonly prisma: PrismaClient) {}
+
+        async save(order: Order): Promise<void> {
+          const data = OrderMapper.toPersistence(order);
+
+          await this.prisma.order.upsert({
+            where: { id: order.id.value },
+            create: data,
+            update: data
+          });
+        }
+
+        async findById(id: string): Promise<Order | null> {
+          const record = await this.prisma.order.findUnique({
+            where: { id },
+            include: { items: true }
+          });
+
+          return record ? OrderMapper.toDomain(record) : null;
+        }
+
+        async findByIdOrFail(id: string): Promise<Order> {
+          const order = await this.findById(id);
+          if (!order) {
+            throw new EntityNotFoundError('Order', id);
+          }
+          return order;
+        }
+
+        async findByCustomerId(customerId: string): Promise<Order[]> {
+          const records = await this.prisma.order.findMany({
+            where: { customerId },
+            include: { items: true },
+            orderBy: { createdAt: 'desc' }
+          });
+
+          return records.map(OrderMapper.toDomain);
+        }
+      }
+
+  test:
+    description: "Unit test with Vitest"
+    code: |
+      // domain/entities/order.test.ts
+      import { describe, it, expect } from 'vitest';
+      import { Order } from './order.js';
+      import { OrderItem } from './order-item.js';
+      import { Money } from '../value-objects/money.js';
+      import { DomainError } from '../errors/domain-error.js';
+
+      describe('Order', () => {
+        const createItem = (price: number, qty: number = 1) =>
+          OrderItem.create('product-id', qty, Money.of(price, 'USD'));
+
+        describe('create', () => {
+          it('should create order with items', () => {
+            const items = [createItem(100), createItem(50, 2)];
+            const order = Order.create('customer-id', items);
+
+            expect(order.customerId).toBe('customer-id');
+            expect(order.status).toBe('PENDING');
+            expect(order.total.amount).toBe(200);
+          });
+
+          it('should throw when creating with no items', () => {
+            expect(() => Order.create('customer-id', [])).toThrow(DomainError);
+          });
+        });
+
+        describe('confirm', () => {
+          it('should change status to CONFIRMED', () => {
+            const order = Order.create('customer-id', [createItem(100)]);
+            const confirmed = order.confirm();
+
+            expect(confirmed.status).toBe('CONFIRMED');
+          });
+
+          it('should throw when confirming non-pending order', () => {
+            const order = Order.create('customer-id', [createItem(100)]).confirm();
+            expect(() => order.confirm()).toThrow(DomainError);
+          });
+        });
+
+        describe('addItem', () => {
+          it('should add item and update total', () => {
+            const order = Order.create('customer-id', [createItem(100)]);
+            const updated = order.addItem(createItem(50));
+
+            expect(updated.total.amount).toBe(150);
+          });
+        });
+      });
+
+  errorHandling:
+    description: "Custom error classes and middleware"
+    code: |
+      // domain/errors/domain-error.ts
+      export class DomainError extends Error {
+        constructor(message: string) {
+          super(message);
+          this.name = 'DomainError';
+        }
+      }
+
+      // domain/errors/entity-not-found.error.ts
+      export class EntityNotFoundError extends DomainError {
+        constructor(entity: string, id: string) {
+          super(`${entity} with id ${id} not found`);
+          this.name = 'EntityNotFoundError';
+        }
+      }
+
+      // infrastructure/http/middlewares/error.middleware.ts
+      import { Request, Response, NextFunction } from 'express';
+      import { DomainError } from '../../../domain/errors/domain-error.js';
+      import { EntityNotFoundError } from '../../../domain/errors/entity-not-found.error.js';
+      import { ZodError } from 'zod';
+
+      export function errorMiddleware(
+        error: Error,
+        req: Request,
+        res: Response,
+        _next: NextFunction
+      ) {
+        if (error instanceof EntityNotFoundError) {
+          return res.status(404).json({
+            type: 'NotFound',
+            message: error.message
+          });
+        }
+
+        if (error instanceof DomainError) {
+          return res.status(400).json({
+            type: 'DomainError',
+            message: error.message
+          });
+        }
+
+        if (error instanceof ZodError) {
+          return res.status(400).json({
+            type: 'ValidationError',
+            errors: error.errors
+          });
+        }
+
+        // Log unexpected errors
+        console.error('Unexpected error:', error);
+
+        return res.status(500).json({
+          type: 'InternalError',
+          message: 'An unexpected error occurred'
+        });
+      }
+
+# ----------------------------------------------------------------------------
+# ANTI-PATTERNS
+# ----------------------------------------------------------------------------
+antiPatterns:
+  anyType:
+    name: "Using 'any' Type"
+    description: "Disabling TypeScript's type safety with 'any'"
+    bad: |
+      // ❌ any disables type checking
+      async function processData(data: any): Promise<any> {
+        const result = data.items.map((item: any) => item.value);
+        return { success: true, data: result };
+      }
+    good: |
+      // ✅ Proper typing
+      interface DataItem { value: number; }
+      interface ProcessInput { items: DataItem[]; }
+      interface ProcessResult { success: boolean; data: number[]; }
+
+      async function processData(data: ProcessInput): Promise<ProcessResult> {
+        const result = data.items.map(item => item.value);
+        return { success: true, data: result };
+      }
+
+  callbackHell:
+    name: "Callback Hell"
+    description: "Nested callbacks instead of async/await"
+    bad: |
+      // ❌ Callback hell
+      function processOrder(orderId: string, callback: (err: Error | null, result?: any) => void) {
+        getOrder(orderId, (err, order) => {
+          if (err) return callback(err);
+          validateOrder(order, (err, valid) => {
+            if (err) return callback(err);
+            processPayment(order, (err, payment) => {
+              if (err) return callback(err);
+              callback(null, { order, payment });
+            });
+          });
+        });
+      }
+    good: |
+      // ✅ async/await
+      async function processOrder(orderId: string): Promise<ProcessedOrder> {
+        const order = await getOrder(orderId);
+        await validateOrder(order);
+        const payment = await processPayment(order);
+        return { order, payment };
+      }
+
+  swallowingErrors:
+    name: "Swallowing Errors"
+    description: "Catching errors without proper handling"
+    bad: |
+      // ❌ Silently ignoring errors
+      try {
+        await saveOrder(order);
+      } catch (error) {
+        // Do nothing - bad!
+      }
+
+      // ❌ Just logging and continuing
+      try {
+        await saveOrder(order);
+      } catch (error) {
+        console.log('Error:', error);
+        // Continues as if nothing happened
+      }
+    good: |
+      // ✅ Proper error handling
+      try {
+        await saveOrder(order);
+      } catch (error) {
+        logger.error('Failed to save order', { orderId: order.id, error });
+        throw new ApplicationError('Order save failed', { cause: error });
+      }
+
+  syncFileOperations:
+    name: "Synchronous File Operations"
+    description: "Blocking the event loop with sync I/O"
+    bad: |
+      // ❌ Blocks event loop
+      import { readFileSync, writeFileSync } from 'fs';
+
+      function loadConfig(): Config {
+        const content = readFileSync('config.json', 'utf-8');
+        return JSON.parse(content);
+      }
+    good: |
+      // ✅ Async operations
+      import { readFile, writeFile } from 'fs/promises';
+
+      async function loadConfig(): Promise<Config> {
+        const content = await readFile('config.json', 'utf-8');
+        return JSON.parse(content);
+      }
+
+  businessLogicInController:
+    name: "Business Logic in Controllers"
+    description: "Putting domain logic in HTTP handlers"
+    bad: |
+      // ❌ Business logic in controller
+      app.post('/orders', async (req, res) => {
+        const { customerId, items } = req.body;
+
+        // Business rules in controller - bad!
+        if (items.length === 0) {
+          return res.status(400).json({ error: 'No items' });
+        }
+
+        let total = 0;
+        for (const item of items) {
+          total += item.price * item.quantity;
+        }
+
+        if (total > 10000) {
+          // Send email to manager...
+        }
+
+        const order = await prisma.order.create({ data: { ... } });
+        res.json(order);
+      });
+    good: |
+      // ✅ Controller delegates to use case
+      app.post('/orders', async (req, res, next) => {
+        try {
+          const order = await createOrderUseCase.execute(req.body);
+          res.status(201).json(OrderMapper.toResponse(order));
+        } catch (error) {
+          next(error);
+        }
+      });
+
+  requireInsteadOfImport:
+    name: "Using CommonJS require()"
+    description: "Using require() instead of ES modules"
+    bad: |
+      // ❌ CommonJS
+      const express = require('express');
+      const { readFile } = require('fs');
+
+      module.exports = { createServer };
+    good: |
+      // ✅ ES Modules
+      import express from 'express';
+      import { readFile } from 'fs/promises';
+
+      export { createServer };
+
+  hardcodedConfig:
+    name: "Hardcoded Configuration"
+    description: "Embedding configuration values in code"
+    bad: |
+      // ❌ Hardcoded values
+      const db = new PrismaClient({
+        datasources: {
+          db: { url: 'postgresql://user:pass@localhost:5432/mydb' }
+        }
+      });
+
+      const jwtSecret = 'my-super-secret-key';
+    good: |
+      // ✅ Environment variables with validation
+      import { z } from 'zod';
+
+      const envSchema = z.object({
+        DATABASE_URL: z.string().url(),
+        JWT_SECRET: z.string().min(32),
+        NODE_ENV: z.enum(['development', 'production', 'test'])
+      });
+
+      export const config = envSchema.parse(process.env);
+
+  nPlusOneQueries:
+    name: "N+1 Query Problem"
+    description: "Making separate database queries in a loop"
+    bad: |
+      // ❌ N+1 queries
+      const orders = await prisma.order.findMany();
+      for (const order of orders) {
+        order.customer = await prisma.customer.findUnique({
+          where: { id: order.customerId }
+        });
+      }
+    good: |
+      // ✅ Use include for eager loading
+      const orders = await prisma.order.findMany({
+        include: { customer: true }
+      });
+
+      // ✅ Or batch with findMany
+      const orders = await prisma.order.findMany();
+      const customerIds = [...new Set(orders.map(o => o.customerId))];
+      const customers = await prisma.customer.findMany({
+        where: { id: { in: customerIds } }
+      });
+
+  mutatingParameters:
+    name: "Mutating Function Parameters"
+    description: "Modifying input objects instead of returning new ones"
+    bad: |
+      // ❌ Mutating input
+      function processOrder(order: Order): void {
+        order.status = 'PROCESSED';
+        order.processedAt = new Date();
+        order.items.forEach(item => {
+          item.processed = true;
+        });
+      }
+    good: |
+      // ✅ Return new object (immutability)
+      function processOrder(order: Order): Order {
+        return {
+          ...order,
+          status: 'PROCESSED',
+          processedAt: new Date(),
+          items: order.items.map(item => ({ ...item, processed: true }))
+        };
+      }

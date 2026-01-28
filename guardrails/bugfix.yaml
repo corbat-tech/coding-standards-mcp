@@ -1,0 +1,102 @@
+# ============================================================================
+# CORBAT MCP - Bug Fix Guardrails
+# ============================================================================
+# Rules and guidelines for fixing bugs safely and effectively.
+# Focus on minimal changes and proper regression testing.
+# ============================================================================
+
+taskType: bugfix
+
+mandatory:
+  - "First write a failing test that reproduces the bug"
+  - "Make the minimum change necessary to fix"
+  - "Verify fix does not break existing tests"
+  - "Document root cause in commit message"
+  - "Verify the fix in the same environment where bug was found"
+
+recommended:
+  - "Add regression test if not already covered"
+  - "Consider if bug exists elsewhere (same pattern)"
+  - "Update documentation if behavior changed"
+  - "Check for similar issues in related code"
+  - "Add defensive coding if appropriate"
+
+avoid:
+  - "Refactoring unrelated code"
+  - "Adding features while fixing bugs"
+  - "Changing APIs without necessity"
+  - "Fixing symptoms instead of root cause"
+  - "Large changes that are hard to review"
+  - "Skipping the reproduction test"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Reproduce"
+      description: "Understand and reproduce the bug consistently"
+      actions:
+        - "Read the bug report carefully"
+        - "Identify the exact steps to reproduce"
+        - "Understand the expected vs actual behavior"
+        - "Create a failing test that demonstrates the bug"
+
+    - name: "Analyze"
+      description: "Find the root cause"
+      actions:
+        - "Use debugging tools to trace the issue"
+        - "Identify which component is responsible"
+        - "Understand WHY the bug occurs, not just WHERE"
+        - "Check if this pattern exists elsewhere"
+
+    - name: "Fix"
+      description: "Implement the minimal fix"
+      actions:
+        - "Change only what is necessary"
+        - "Keep the fix focused and small"
+        - "Don't introduce new features"
+        - "Ensure the failing test now passes"
+
+    - name: "Verify"
+      description: "Ensure the fix is complete and safe"
+      actions:
+        - "Run all existing tests"
+        - "Test edge cases around the fix"
+        - "Verify in the original environment if possible"
+        - "Check for regressions"
+
+    - name: "Document"
+      description: "Record what was learned"
+      actions:
+        - "Write clear commit message with root cause"
+        - "Update documentation if behavior changed"
+        - "Consider adding to known issues if pattern is common"
+
+# Common bug patterns to look for
+commonPatterns:
+  nullPointer:
+    description: "Null/undefined reference errors"
+    checkFor:
+      - "Missing null checks"
+      - "Optional values accessed without guards"
+      - "Async operations returning null unexpectedly"
+
+  offByOne:
+    description: "Index or boundary errors"
+    checkFor:
+      - "Loop boundaries (< vs <=)"
+      - "Array index calculations"
+      - "String substring operations"
+
+  concurrency:
+    description: "Race conditions and thread safety"
+    checkFor:
+      - "Shared mutable state"
+      - "Missing synchronization"
+      - "Order-dependent operations"
+
+  stateManagement:
+    description: "Incorrect state transitions"
+    checkFor:
+      - "State not properly initialized"
+      - "State modified in wrong order"
+      - "State not cleaned up"

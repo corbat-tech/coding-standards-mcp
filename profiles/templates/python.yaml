@@ -338,3 +338,549 @@ dependencies:
 # pyproject.toml
 # alembic.ini
 # Dockerfile
+
+# ----------------------------------------------------------------------------
+# CODE EXAMPLES
+# ----------------------------------------------------------------------------
+codeExamples:
+  entity:
+    description: "Domain entity with Pydantic"
+    code: |
+      # domain/entities/order.py
+      from datetime import datetime
+      from decimal import Decimal
+      from typing import List
+      from uuid import UUID, uuid4
+      from pydantic import BaseModel, Field
+
+      from domain.value_objects.money import Money
+      from domain.exceptions import DomainError
+
+
+      class OrderItem(BaseModel):
+          product_id: UUID
+          quantity: int = Field(gt=0)
+          unit_price: Money
+
+          @property
+          def subtotal(self) -> Money:
+              return self.unit_price * self.quantity
+
+
+      class Order(BaseModel):
+          id: UUID = Field(default_factory=uuid4)
+          customer_id: UUID
+          items: List[OrderItem] = Field(min_length=1)
+          status: str = "PENDING"
+          created_at: datetime = Field(default_factory=datetime.utcnow)
+
+          model_config = {"frozen": True}  # Immutable
+
+          @property
+          def total(self) -> Money:
+              return sum(
+                  (item.subtotal for item in self.items),
+                  start=Money(amount=Decimal("0"), currency="USD")
+              )
+
+          def confirm(self) -> "Order":
+              if self.status != "PENDING":
+                  raise DomainError("Order is not pending")
+              return self.model_copy(update={"status": "CONFIRMED"})
+
+          def add_item(self, item: OrderItem) -> "Order":
+              if self.status != "PENDING":
+                  raise DomainError("Cannot add items to confirmed order")
+              return self.model_copy(update={"items": [*self.items, item]})
+
+  valueObject:
+    description: "Immutable value object"
+    code: |
+      # domain/value_objects/money.py
+      from decimal import Decimal
+      from pydantic import BaseModel, Field, model_validator
+
+      from domain.exceptions import DomainError
+
+
+      class Money(BaseModel):
+          amount: Decimal = Field(ge=0)
+          currency: str = Field(min_length=3, max_length=3)
+
+          model_config = {"frozen": True}
+
+          def __add__(self, other: "Money") -> "Money":
+              self._ensure_same_currency(other)
+              return Money(amount=self.amount + other.amount, currency=self.currency)
+
+          def __mul__(self, factor: int | Decimal) -> "Money":
+              return Money(amount=self.amount * Decimal(str(factor)), currency=self.currency)
+
+          def _ensure_same_currency(self, other: "Money") -> None:
+              if self.currency != other.currency:
+                  raise DomainError(f"Currency mismatch: {self.currency} vs {other.currency}")
+
+          def __str__(self) -> str:
+              return f"{self.currency} {self.amount:.2f}"
+
+  useCase:
+    description: "Application use case with dependency injection"
+    code: |
+      # application/use_cases/create_order.py
+      from uuid import UUID
+      from typing import Protocol
+
+      from domain.entities.order import Order, OrderItem
+      from domain.value_objects.money import Money
+      from application.ports.order_repository import OrderRepository
+      from application.ports.event_publisher import EventPublisher
+
+
+      class CreateOrderCommand(BaseModel):
+          customer_id: UUID
+          items: list[dict]
+
+
+      class CreateOrderUseCase:
+          def __init__(
+              self,
+              order_repository: OrderRepository,
+              event_publisher: EventPublisher,
+          ) -> None:
+              self._order_repository = order_repository
+              self._event_publisher = event_publisher
+
+          async def execute(self, command: CreateOrderCommand) -> Order:
+              items = [
+                  OrderItem(
+                      product_id=item["product_id"],
+                      quantity=item["quantity"],
+                      unit_price=Money(
+                          amount=item["unit_price"],
+                          currency="USD"
+                      )
+                  )
+                  for item in command.items
+              ]
+
+              order = Order(customer_id=command.customer_id, items=items)
+
+              await self._order_repository.save(order)
+
+              await self._event_publisher.publish(
+                  "OrderCreated",
+                  {"order_id": str(order.id), "customer_id": str(order.customer_id)}
+              )
+
+              return order
+
+  router:
+    description: "FastAPI router with validation"
+    code: |
+      # infrastructure/api/routes/orders.py
+      from uuid import UUID
+      from fastapi import APIRouter, Depends, HTTPException, status
+      from pydantic import BaseModel, Field
+
+      from application.use_cases.create_order import CreateOrderUseCase, CreateOrderCommand
+      from infrastructure.api.dependencies import get_create_order_use_case
+
+
+      router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+      class CreateOrderRequest(BaseModel):
+          customer_id: UUID
+          items: list[dict] = Field(min_length=1)
+
+
+      class OrderResponse(BaseModel):
+          id: UUID
+          customer_id: UUID
+          status: str
+          total: str
+
+
+      @router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+      async def create_order(
+          request: CreateOrderRequest,
+          use_case: CreateOrderUseCase = Depends(get_create_order_use_case),
+      ) -> OrderResponse:
+          command = CreateOrderCommand(
+              customer_id=request.customer_id,
+              items=request.items
+          )
+          order = await use_case.execute(command)
+
+          return OrderResponse(
+              id=order.id,
+              customer_id=order.customer_id,
+              status=order.status,
+              total=str(order.total)
+          )
+
+
+      @router.get("/{order_id}", response_model=OrderResponse)
+      async def get_order(
+          order_id: UUID,
+          use_case: GetOrderUseCase = Depends(get_get_order_use_case),
+      ) -> OrderResponse:
+          order = await use_case.execute(order_id)
+          if not order:
+              raise HTTPException(
+                  status_code=status.HTTP_404_NOT_FOUND,
+                  detail=f"Order {order_id} not found"
+              )
+          return OrderResponse(...)
+
+  repository:
+    description: "Repository with SQLAlchemy 2.0"
+    code: |
+      # infrastructure/database/repositories/order_repository.py
+      from uuid import UUID
+      from typing import Optional
+
+      from sqlalchemy import select
+      from sqlalchemy.ext.asyncio import AsyncSession
+      from sqlalchemy.orm import selectinload
+
+      from domain.entities.order import Order
+      from application.ports.order_repository import OrderRepository
+      from infrastructure.database.models.order import OrderModel
+      from infrastructure.database.mappers.order_mapper import OrderMapper
+
+
+      class SQLAlchemyOrderRepository(OrderRepository):
+          def __init__(self, session: AsyncSession) -> None:
+              self._session = session
+
+          async def save(self, order: Order) -> None:
+              model = OrderMapper.to_model(order)
+              self._session.add(model)
+              await self._session.commit()
+
+          async def find_by_id(self, order_id: UUID) -> Optional[Order]:
+              query = (
+                  select(OrderModel)
+                  .options(selectinload(OrderModel.items))
+                  .where(OrderModel.id == order_id)
+              )
+              result = await self._session.execute(query)
+              model = result.scalar_one_or_none()
+
+              return OrderMapper.to_entity(model) if model else None
+
+          async def find_by_customer_id(self, customer_id: UUID) -> list[Order]:
+              query = (
+                  select(OrderModel)
+                  .options(selectinload(OrderModel.items))
+                  .where(OrderModel.customer_id == customer_id)
+                  .order_by(OrderModel.created_at.desc())
+              )
+              result = await self._session.execute(query)
+              models = result.scalars().all()
+
+              return [OrderMapper.to_entity(m) for m in models]
+
+  test:
+    description: "Pytest test with fixtures"
+    code: |
+      # tests/unit/domain/test_order.py
+      from decimal import Decimal
+      from uuid import uuid4
+
+      import pytest
+
+      from domain.entities.order import Order, OrderItem
+      from domain.value_objects.money import Money
+      from domain.exceptions import DomainError
+
+
+      @pytest.fixture
+      def sample_item() -> OrderItem:
+          return OrderItem(
+              product_id=uuid4(),
+              quantity=2,
+              unit_price=Money(amount=Decimal("50.00"), currency="USD")
+          )
+
+
+      @pytest.fixture
+      def pending_order(sample_item: OrderItem) -> Order:
+          return Order(customer_id=uuid4(), items=[sample_item])
+
+
+      class TestOrder:
+          def test_should_create_order_with_items(self, sample_item: OrderItem) -> None:
+              order = Order(customer_id=uuid4(), items=[sample_item])
+
+              assert order.status == "PENDING"
+              assert order.total == Money(amount=Decimal("100.00"), currency="USD")
+
+          def test_should_raise_when_creating_without_items(self) -> None:
+              with pytest.raises(ValueError):
+                  Order(customer_id=uuid4(), items=[])
+
+          def test_should_confirm_pending_order(self, pending_order: Order) -> None:
+              confirmed = pending_order.confirm()
+
+              assert confirmed.status == "CONFIRMED"
+              assert confirmed.id == pending_order.id
+
+          def test_should_raise_when_confirming_non_pending(
+              self, pending_order: Order
+          ) -> None:
+              confirmed = pending_order.confirm()
+
+              with pytest.raises(DomainError, match="not pending"):
+                  confirmed.confirm()
+
+          def test_should_add_item_to_pending_order(
+              self, pending_order: Order, sample_item: OrderItem
+          ) -> None:
+              updated = pending_order.add_item(sample_item)
+
+              assert len(updated.items) == 2
+              assert updated.total.amount == Decimal("200.00")
+
+  dependencyInjection:
+    description: "FastAPI dependency injection"
+    code: |
+      # infrastructure/api/dependencies.py
+      from typing import AsyncGenerator
+      from functools import lru_cache
+
+      from fastapi import Depends
+      from sqlalchemy.ext.asyncio import AsyncSession
+
+      from infrastructure.database.session import get_session
+      from infrastructure.database.repositories.order_repository import SQLAlchemyOrderRepository
+      from application.use_cases.create_order import CreateOrderUseCase
+
+
+      async def get_order_repository(
+          session: AsyncSession = Depends(get_session),
+      ) -> SQLAlchemyOrderRepository:
+          return SQLAlchemyOrderRepository(session)
+
+
+      async def get_create_order_use_case(
+          order_repository: SQLAlchemyOrderRepository = Depends(get_order_repository),
+          event_publisher: EventPublisher = Depends(get_event_publisher),
+      ) -> CreateOrderUseCase:
+          return CreateOrderUseCase(
+              order_repository=order_repository,
+              event_publisher=event_publisher,
+          )
+
+# ----------------------------------------------------------------------------
+# ANTI-PATTERNS
+# ----------------------------------------------------------------------------
+antiPatterns:
+  noTypeHints:
+    name: "Missing Type Hints"
+    description: "Functions without type annotations"
+    bad: |
+      # ❌ No type hints
+      def calculate_total(items):
+          total = 0
+          for item in items:
+              total += item['price'] * item['quantity']
+          return total
+
+      def get_user(user_id):
+          return db.query(User).get(user_id)
+    good: |
+      # ✅ With type hints
+      from decimal import Decimal
+      from typing import Optional
+
+      def calculate_total(items: list[OrderItem]) -> Decimal:
+          return sum(item.subtotal for item in items)
+
+      def get_user(user_id: UUID) -> Optional[User]:
+          return db.query(User).get(user_id)
+
+  bareExcept:
+    name: "Bare Except Clauses"
+    description: "Catching all exceptions without specificity"
+    bad: |
+      # ❌ Bare except catches everything
+      try:
+          process_order(order)
+      except:
+          print("Something went wrong")
+
+      # ❌ Catching generic Exception
+      try:
+          process_order(order)
+      except Exception:
+          pass
+    good: |
+      # ✅ Specific exception handling
+      from domain.exceptions import DomainError, ValidationError
+
+      try:
+          process_order(order)
+      except ValidationError as e:
+          logger.warning("Validation failed", error=str(e))
+          raise HTTPException(status_code=400, detail=str(e))
+      except DomainError as e:
+          logger.error("Domain error", error=str(e))
+          raise HTTPException(status_code=422, detail=str(e))
+
+  printStatements:
+    name: "Using print() for Logging"
+    description: "Using print instead of structured logging"
+    bad: |
+      # ❌ print statements
+      print(f"Processing order {order_id}")
+      print(f"Error: {error}")
+    good: |
+      # ✅ Structured logging
+      import structlog
+
+      logger = structlog.get_logger()
+
+      logger.info("processing_order", order_id=str(order_id))
+      logger.error("order_failed", order_id=str(order_id), error=str(error))
+
+  syncInAsync:
+    name: "Synchronous Code in Async Functions"
+    description: "Blocking the event loop with sync operations"
+    bad: |
+      # ❌ Blocking async function
+      import requests
+
+      async def fetch_user_data(user_id: str) -> dict:
+          response = requests.get(f"/api/users/{user_id}")  # Blocks!
+          return response.json()
+
+      async def read_config() -> dict:
+          with open("config.json") as f:  # Blocks!
+              return json.load(f)
+    good: |
+      # ✅ Async operations
+      import httpx
+      import aiofiles
+
+      async def fetch_user_data(user_id: str) -> dict:
+          async with httpx.AsyncClient() as client:
+              response = await client.get(f"/api/users/{user_id}")
+              return response.json()
+
+      async def read_config() -> dict:
+          async with aiofiles.open("config.json") as f:
+              content = await f.read()
+              return json.loads(content)
+
+  mutableDefaults:
+    name: "Mutable Default Arguments"
+    description: "Using mutable objects as default parameters"
+    bad: |
+      # ❌ Mutable default - shared between calls!
+      def add_item(item: str, items: list = []) -> list:
+          items.append(item)
+          return items
+
+      def process_config(config: dict = {}) -> dict:
+          config["processed"] = True
+          return config
+    good: |
+      # ✅ Use None and create new objects
+      def add_item(item: str, items: list | None = None) -> list:
+          if items is None:
+              items = []
+          items.append(item)
+          return items
+
+      def process_config(config: dict | None = None) -> dict:
+          if config is None:
+              config = {}
+          return {**config, "processed": True}
+
+  businessLogicInRoutes:
+    name: "Business Logic in Routes"
+    description: "Putting domain logic in API endpoints"
+    bad: |
+      # ❌ Business logic in route
+      @router.post("/orders")
+      async def create_order(request: CreateOrderRequest, db: Session = Depends(get_db)):
+          # All logic in the route - bad!
+          if not request.items:
+              raise HTTPException(400, "No items")
+
+          total = sum(item.price * item.quantity for item in request.items)
+
+          if total > 10000:
+              await send_manager_notification(total)
+
+          order = OrderModel(customer_id=request.customer_id, total=total)
+          db.add(order)
+          db.commit()
+          return order
+    good: |
+      # ✅ Route delegates to use case
+      @router.post("/orders", response_model=OrderResponse)
+      async def create_order(
+          request: CreateOrderRequest,
+          use_case: CreateOrderUseCase = Depends(get_create_order_use_case),
+      ) -> OrderResponse:
+          command = CreateOrderCommand(**request.model_dump())
+          order = await use_case.execute(command)
+          return OrderResponse.from_entity(order)
+
+  globalState:
+    name: "Global Mutable State"
+    description: "Using global variables for state management"
+    bad: |
+      # ❌ Global mutable state
+      current_user = None
+      db_connection = None
+
+      def set_user(user):
+          global current_user
+          current_user = user
+
+      def get_user():
+          return current_user
+    good: |
+      # ✅ Dependency injection
+      from fastapi import Depends, Request
+      from typing import Annotated
+
+      async def get_current_user(request: Request) -> User:
+          token = request.headers.get("Authorization")
+          return await auth_service.validate_token(token)
+
+      @router.get("/profile")
+      async def get_profile(
+          current_user: Annotated[User, Depends(get_current_user)]
+      ) -> UserProfile:
+          return UserProfile.from_user(current_user)
+
+  stringConcatenation:
+    name: "String Concatenation for SQL"
+    description: "Building SQL queries with string concatenation"
+    bad: |
+      # ❌ SQL injection vulnerability!
+      def get_user_by_email(email: str):
+          query = f"SELECT * FROM users WHERE email = '{email}'"
+          return db.execute(query)
+
+      def search_products(term: str):
+          query = "SELECT * FROM products WHERE name LIKE '%" + term + "%'"
+          return db.execute(query)
+    good: |
+      # ✅ Parameterized queries with SQLAlchemy
+      from sqlalchemy import select
+
+      async def get_user_by_email(email: str) -> User | None:
+          query = select(User).where(User.email == email)
+          result = await session.execute(query)
+          return result.scalar_one_or_none()
+
+      async def search_products(term: str) -> list[Product]:
+          query = select(Product).where(Product.name.ilike(f"%{term}%"))
+          result = await session.execute(query)
+          return list(result.scalars().all())

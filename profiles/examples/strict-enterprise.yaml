@@ -1,0 +1,62 @@
+# ============================================================================
+# CORBAT MCP - Strict Enterprise Profile (Example)
+# ============================================================================
+# For enterprise projects with strict quality requirements.
+# Copy to profiles/custom/ and modify as needed.
+#
+# Usage:
+#   1. Copy this file to profiles/custom/strict-enterprise.yaml
+#   2. Or reference in .corbat.json: { "profile": "strict-enterprise" }
+# ============================================================================
+
+name: "Strict Enterprise"
+description: "Enterprise-grade standards with strict quality gates for mission-critical systems"
+extends: "java-spring-backend"
+
+# Override code quality with stricter limits
+codeQuality:
+  maxMethodLines: 15           # Stricter than default (20)
+  maxClassLines: 150           # Stricter than default (200)
+  maxFileLines: 300            # Stricter than default (400)
+  maxMethodParameters: 3       # Stricter than default (4)
+  maxCyclomaticComplexity: 8   # Stricter than default (10)
+  minimumTestCoverage: 90      # Stricter than default (80)
+  requireDocumentation: true
+  requireTests: true
+  principles:
+    - "SOLID principles are mandatory"
+    - "All public APIs must have JavaDoc"
+    - "No @SuppressWarnings without justification comment"
+    - "All TODOs must have JIRA ticket reference"
+
+# Enhanced testing requirements
+testing:
+  framework: "JUnit5"
+  assertionLibrary: "AssertJ"
+  mockingLibrary: "Mockito"
+  types:
+    unit:
+      suffix: "Test"
+      coverage: 90
+      fastExecution: true
+    integration:
+      suffix: "IT"
+      useTestcontainers: true
+    architecture:
+      tool: "ArchUnit"
+      recommended: true
+
+# Stricter security requirements
+security:
+  authentication:
+    method: "OAuth2/OIDC"
+  authorization:
+    method: "RBAC with fine-grained permissions"
+    framework: "Spring Security"
+  practices:
+    - "All endpoints require authentication except health checks"
+    - "Sensitive data must be encrypted at rest and in transit"
+    - "Input validation on all external boundaries"
+    - "Security headers on all HTTP responses"
+    - "Rate limiting on public endpoints"
+    - "Audit logging for all data modifications"

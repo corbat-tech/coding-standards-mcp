@@ -329,3 +329,459 @@ api:
 # ├── integration/
 # ├── e2e/
 # └── setup.ts
+
+# ----------------------------------------------------------------------------
+# CODE EXAMPLES
+# ----------------------------------------------------------------------------
+codeExamples:
+  functionalComponent:
+    description: "Basic functional component with TypeScript"
+    code: |
+      // components/UserCard.tsx
+      interface UserCardProps {
+        user: User;
+        onSelect?: (userId: string) => void;
+        isActive?: boolean;
+      }
+
+      export default function UserCard({ user, onSelect, isActive = false }: UserCardProps) {
+        const handleClick = () => onSelect?.(user.id);
+
+        return (
+          <article
+            className={cn('user-card', { 'user-card--active': isActive })}
+            onClick={handleClick}
+            role="button"
+            tabIndex={0}
+            aria-pressed={isActive}
+          >
+            <img src={user.avatar} alt={`${user.name}'s avatar`} />
+            <h3>{user.name}</h3>
+            <p>{user.email}</p>
+          </article>
+        );
+      }
+
+  customHook:
+    description: "Custom hook with proper typing and cleanup"
+    code: |
+      // hooks/useDebounce.ts
+      import { useState, useEffect } from 'react';
+
+      export function useDebounce<T>(value: T, delay: number): T {
+        const [debouncedValue, setDebouncedValue] = useState(value);
+
+        useEffect(() => {
+          const timer = setTimeout(() => setDebouncedValue(value), delay);
+          return () => clearTimeout(timer); // Cleanup
+        }, [value, delay]);
+
+        return debouncedValue;
+      }
+
+  dataFetchingHook:
+    description: "Data fetching with TanStack Query"
+    code: |
+      // hooks/useUsers.ts
+      import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+      import { usersApi } from '@/core/api/users';
+
+      export function useUsers() {
+        return useQuery({
+          queryKey: ['users'],
+          queryFn: usersApi.getAll,
+          staleTime: 5 * 60 * 1000, // 5 minutes
+        });
+      }
+
+      export function useCreateUser() {
+        const queryClient = useQueryClient();
+
+        return useMutation({
+          mutationFn: usersApi.create,
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+          },
+        });
+      }
+
+  contextProvider:
+    description: "Context with TypeScript for theme/auth"
+    code: |
+      // context/AuthContext.tsx
+      interface AuthContextValue {
+        user: User | null;
+        isAuthenticated: boolean;
+        login: (credentials: Credentials) => Promise<void>;
+        logout: () => void;
+      }
+
+      const AuthContext = createContext<AuthContextValue | null>(null);
+
+      export function AuthProvider({ children }: { children: React.ReactNode }) {
+        const [user, setUser] = useState<User | null>(null);
+
+        const login = async (credentials: Credentials) => {
+          const user = await authApi.login(credentials);
+          setUser(user);
+        };
+
+        const logout = () => setUser(null);
+
+        const value: AuthContextValue = {
+          user,
+          isAuthenticated: !!user,
+          login,
+          logout,
+        };
+
+        return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+      }
+
+      export function useAuth(): AuthContextValue {
+        const context = useContext(AuthContext);
+        if (!context) throw new Error('useAuth must be used within AuthProvider');
+        return context;
+      }
+
+  zustandStore:
+    description: "Zustand store for global state"
+    code: |
+      // stores/cartStore.ts
+      import { create } from 'zustand';
+      import { devtools, persist } from 'zustand/middleware';
+
+      interface CartState {
+        items: CartItem[];
+        total: number;
+        addItem: (item: CartItem) => void;
+        removeItem: (itemId: string) => void;
+        clearCart: () => void;
+      }
+
+      export const useCartStore = create<CartState>()(
+        devtools(
+          persist(
+            (set, get) => ({
+              items: [],
+              total: 0,
+
+              addItem: (item) =>
+                set((state) => ({
+                  items: [...state.items, item],
+                  total: state.total + item.price,
+                })),
+
+              removeItem: (itemId) =>
+                set((state) => {
+                  const item = state.items.find((i) => i.id === itemId);
+                  return {
+                    items: state.items.filter((i) => i.id !== itemId),
+                    total: state.total - (item?.price ?? 0),
+                  };
+                }),
+
+              clearCart: () => set({ items: [], total: 0 }),
+            }),
+            { name: 'cart-storage' }
+          )
+        )
+      );
+
+  componentTest:
+    description: "Component test with React Testing Library"
+    code: |
+      // components/UserCard.test.tsx
+      import { render, screen } from '@testing-library/react';
+      import userEvent from '@testing-library/user-event';
+      import { UserCard } from './UserCard';
+
+      describe('UserCard', () => {
+        const mockUser = { id: '1', name: 'John Doe', email: 'john@example.com', avatar: '/avatar.png' };
+
+        it('renders user information', () => {
+          render(<UserCard user={mockUser} />);
+
+          expect(screen.getByRole('heading', { name: 'John Doe' })).toBeInTheDocument();
+          expect(screen.getByText('john@example.com')).toBeInTheDocument();
+          expect(screen.getByAltText("John Doe's avatar")).toBeInTheDocument();
+        });
+
+        it('calls onSelect when clicked', async () => {
+          const user = userEvent.setup();
+          const onSelect = vi.fn();
+
+          render(<UserCard user={mockUser} onSelect={onSelect} />);
+          await user.click(screen.getByRole('button'));
+
+          expect(onSelect).toHaveBeenCalledWith('1');
+        });
+
+        it('is keyboard accessible', async () => {
+          const user = userEvent.setup();
+          const onSelect = vi.fn();
+
+          render(<UserCard user={mockUser} onSelect={onSelect} />);
+          await user.tab();
+          await user.keyboard('{Enter}');
+
+          expect(onSelect).toHaveBeenCalled();
+        });
+      });
+
+  errorBoundary:
+    description: "Error boundary for graceful error handling"
+    code: |
+      // components/ErrorBoundary.tsx
+      interface Props {
+        children: React.ReactNode;
+        fallback?: React.ReactNode;
+      }
+
+      interface State {
+        hasError: boolean;
+        error?: Error;
+      }
+
+      export class ErrorBoundary extends React.Component<Props, State> {
+        state: State = { hasError: false };
+
+        static getDerivedStateFromError(error: Error): State {
+          return { hasError: true, error };
+        }
+
+        componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+          console.error('Error caught:', error, errorInfo);
+          // Log to error tracking service
+        }
+
+        render() {
+          if (this.state.hasError) {
+            return this.props.fallback ?? (
+              <div role="alert">
+                <h2>Something went wrong</h2>
+                <button onClick={() => this.setState({ hasError: false })}>
+                  Try again
+                </button>
+              </div>
+            );
+          }
+          return this.props.children;
+        }
+      }
+
+# ----------------------------------------------------------------------------
+# ANTI-PATTERNS
+# ----------------------------------------------------------------------------
+antiPatterns:
+  propDrilling:
+    name: "Prop Drilling"
+    description: "Passing props through many levels of components"
+    bad: |
+      // ❌ Props passed through 4 levels
+      function App() {
+        const [user, setUser] = useState<User | null>(null);
+        return <Layout user={user} setUser={setUser} />;
+      }
+      function Layout({ user, setUser }) {
+        return <Sidebar user={user} setUser={setUser} />;
+      }
+      function Sidebar({ user, setUser }) {
+        return <UserMenu user={user} setUser={setUser} />;
+      }
+    good: |
+      // ✅ Use Context or Zustand
+      function App() {
+        return (
+          <AuthProvider>
+            <Layout />
+          </AuthProvider>
+        );
+      }
+      function UserMenu() {
+        const { user, logout } = useAuth(); // Direct access
+        return <button onClick={logout}>Logout {user?.name}</button>;
+      }
+
+  useEffectAbuse:
+    name: "useEffect for Derived State"
+    description: "Using useEffect to synchronize state that should be computed"
+    bad: |
+      // ❌ useEffect for derived state
+      function ProductList({ products }) {
+        const [total, setTotal] = useState(0);
+
+        useEffect(() => {
+          const sum = products.reduce((acc, p) => acc + p.price, 0);
+          setTotal(sum);
+        }, [products]);
+
+        return <div>Total: {total}</div>;
+      }
+    good: |
+      // ✅ Use useMemo for derived values
+      function ProductList({ products }) {
+        const total = useMemo(
+          () => products.reduce((acc, p) => acc + p.price, 0),
+          [products]
+        );
+
+        return <div>Total: {total}</div>;
+      }
+
+  inlineHandlers:
+    name: "Inline Function Definitions in JSX"
+    description: "Creating new functions on every render"
+    bad: |
+      // ❌ New function created on every render
+      function ItemList({ items, onRemove }) {
+        return (
+          <ul>
+            {items.map(item => (
+              <li key={item.id}>
+                {item.name}
+                <button onClick={() => onRemove(item.id)}>Remove</button>
+              </li>
+            ))}
+          </ul>
+        );
+      }
+    good: |
+      // ✅ Use useCallback or extract component
+      function ItemList({ items, onRemove }) {
+        return (
+          <ul>
+            {items.map(item => (
+              <Item key={item.id} item={item} onRemove={onRemove} />
+            ))}
+          </ul>
+        );
+      }
+
+      const Item = memo(function Item({ item, onRemove }) {
+        const handleRemove = useCallback(() => onRemove(item.id), [item.id, onRemove]);
+        return (
+          <li>
+            {item.name}
+            <button onClick={handleRemove}>Remove</button>
+          </li>
+        );
+      });
+
+  useStateForServerData:
+    name: "useState for Server Data"
+    description: "Managing server state with useState instead of a data fetching library"
+    bad: |
+      // ❌ Manual server state management
+      function UserList() {
+        const [users, setUsers] = useState<User[]>([]);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState<Error | null>(null);
+
+        useEffect(() => {
+          setLoading(true);
+          fetchUsers()
+            .then(setUsers)
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }, []);
+
+        // No caching, no refetch, no deduplication...
+      }
+    good: |
+      // ✅ Use TanStack Query
+      function UserList() {
+        const { data: users, isLoading, error, refetch } = useQuery({
+          queryKey: ['users'],
+          queryFn: fetchUsers,
+        });
+
+        // Automatic caching, refetch, deduplication, etc.
+      }
+
+  anyType:
+    name: "Using 'any' Type"
+    description: "Disabling TypeScript's type checking with 'any'"
+    bad: |
+      // ❌ any disables type safety
+      function processData(data: any) {
+        return data.items.map((item: any) => item.value);
+      }
+    good: |
+      // ✅ Proper typing
+      interface DataItem {
+        value: number;
+      }
+      interface Data {
+        items: DataItem[];
+      }
+
+      function processData(data: Data): number[] {
+        return data.items.map(item => item.value);
+      }
+
+  testingImplementation:
+    name: "Testing Implementation Details"
+    description: "Testing internal state or methods instead of behavior"
+    bad: |
+      // ❌ Testing internal state
+      it('increments count state', () => {
+        const { result } = renderHook(() => useCounter());
+        expect(result.current.count).toBe(0);
+        act(() => result.current.increment());
+        expect(result.current.count).toBe(1);
+      });
+
+      // ❌ Using getByTestId unnecessarily
+      expect(screen.getByTestId('user-name')).toHaveTextContent('John');
+    good: |
+      // ✅ Test visible behavior
+      it('displays incremented count', async () => {
+        render(<Counter />);
+        expect(screen.getByRole('status')).toHaveTextContent('0');
+
+        await userEvent.click(screen.getByRole('button', { name: /increment/i }));
+
+        expect(screen.getByRole('status')).toHaveTextContent('1');
+      });
+
+      // ✅ Use accessible queries
+      expect(screen.getByRole('heading', { name: 'John' })).toBeInTheDocument();
+
+  missingKeyOrBadKey:
+    name: "Missing or Non-Unique Keys"
+    description: "Not providing keys or using index as key in dynamic lists"
+    bad: |
+      // ❌ Index as key (causes bugs with reordering)
+      {items.map((item, index) => (
+        <Item key={index} item={item} />
+      ))}
+
+      // ❌ No key at all
+      {items.map(item => (
+        <Item item={item} />
+      ))}
+    good: |
+      // ✅ Unique identifier as key
+      {items.map(item => (
+        <Item key={item.id} item={item} />
+      ))}
+
+  inlineStyles:
+    name: "Inline Styles"
+    description: "Using inline style objects instead of CSS classes"
+    bad: |
+      // ❌ Inline styles
+      <div style={{ padding: '16px', backgroundColor: '#f0f0f0', marginTop: '8px' }}>
+        Content
+      </div>
+    good: |
+      // ✅ Use Tailwind or CSS classes
+      <div className="p-4 bg-gray-100 mt-2">
+        Content
+      </div>
+
+      // ✅ Or CSS Modules
+      <div className={styles.container}>
+        Content
+      </div>
