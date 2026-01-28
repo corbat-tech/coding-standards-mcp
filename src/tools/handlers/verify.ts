@@ -1,5 +1,5 @@
-import { analyzeCode, type AnalysisResult } from '../../analysis/code-analyzer.js';
 import { z } from 'zod';
+import { type AnalysisResult, analyzeCode } from '../../analysis/code-analyzer.js';
 
 /**
  * Schema for verify tool input.
@@ -28,7 +28,7 @@ export type VerifyInput = z.infer<typeof VerifySchema>;
 export async function handleVerify(
   args: Record<string, unknown>
 ): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  const { code, tests, interfaces, task_type } = VerifySchema.parse(args);
+  const { code, tests, interfaces } = VerifySchema.parse(args);
 
   // Combine all code for comprehensive analysis
   const allCodeParts: string[] = [];

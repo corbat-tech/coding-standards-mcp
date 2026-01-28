@@ -224,9 +224,9 @@ export function analyzeCode(code: string): AnalysisResult {
   // 1. Detect anti-patterns
   for (const ap of ANTI_PATTERNS) {
     const regex = new RegExp(ap.pattern.source, ap.pattern.flags);
-    let match: RegExpExecArray | null;
+    let match: RegExpExecArray | null = regex.exec(code);
 
-    while ((match = regex.exec(code)) !== null) {
+    while (match !== null) {
       const lineNum = code.substring(0, match.index).split('\n').length;
 
       // Avoid duplicate issues at the same line for the same rule
@@ -240,6 +240,7 @@ export function analyzeCode(code: string): AnalysisResult {
           suggestion: ap.suggestion,
         });
       }
+      match = regex.exec(code);
     }
   }
 
@@ -331,7 +332,7 @@ function analyzeMethodLengths(code: string): Array<{ name: string; lines: number
     // Java/Kotlin: public void name(), private String name()
     /(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?(?:\w+\s+)?(\w+)\s*\([^)]*\)\s*(?:throws\s+[\w,\s]+)?\s*\{/g,
     // Python: def name(
-    /def\s+(\w+)\s*\([^)]*\)\s*(?:->\s*[\w\[\],\s]+)?\s*:/g,
+    /def\s+(\w+)\s*\([^)]*\)\s*(?:->\s*[\w[\],\s]+)?\s*:/g,
     // Go: func name( or func (receiver) name(
     /func\s+(?:\([^)]+\)\s+)?(\w+)\s*\([^)]*\)\s*(?:\([^)]*\)|[\w\s*]+)?\s*\{/g,
     // Rust: fn name(
@@ -340,15 +341,18 @@ function analyzeMethodLengths(code: string): Array<{ name: string; lines: number
 
   for (const pattern of methodPatterns) {
     const regex = new RegExp(pattern.source, pattern.flags);
-    let match: RegExpExecArray | null;
+    let match: RegExpExecArray | null = regex.exec(code);
 
-    while ((match = regex.exec(code)) !== null) {
+    while (match !== null) {
       const startIndex = match.index;
       const startLine = code.substring(0, startIndex).split('\n').length;
       const methodName = match[1] || 'anonymous';
 
       // Skip if we already have this method (avoid duplicates from overlapping patterns)
-      if (results.some((r) => r.startLine === startLine)) continue;
+      if (results.some((r) => r.startLine === startLine)) {
+        match = regex.exec(code);
+        continue;
+      }
 
       // Count lines until matching closing brace
       let braceCount = 0;
@@ -382,6 +386,7 @@ function analyzeMethodLengths(code: string): Array<{ name: string; lines: number
           startLine,
         });
       }
+      match = regex.exec(code);
     }
   }
 
@@ -399,8 +404,8 @@ function analyzeClassLengths(code: string): Array<{ name: string; lines: number;
   const classPattern =
     /(?:export\s+)?(?:abstract\s+)?class\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+[\w,\s]+)?\s*\{/g;
 
-  let match: RegExpExecArray | null;
-  while ((match = classPattern.exec(code)) !== null) {
+  let match: RegExpExecArray | null = classPattern.exec(code);
+  while (match !== null) {
     const startIndex = match.index;
     const startLine = code.substring(0, startIndex).split('\n').length;
     const className = match[1];
@@ -431,6 +436,7 @@ function analyzeClassLengths(code: string): Array<{ name: string; lines: number;
       lines: endLine - startLine + 1,
       startLine,
     });
+    match = classPattern.exec(code);
   }
 
   return results;
