@@ -34,17 +34,26 @@ Complete reference for Corbat MCP tools, resources, and prompts.
 
 ### validate
 
-Validate code against coding standards.
+**Real code analysis** - Analyzes code and returns specific issues with suggestions.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `code` | string | Yes | The code to validate |
-| `task_type` | enum | No | One of: `feature`, `bugfix`, `refactor`, `test` |
+| `task_type` | enum | No | One of: `feature`, `bugfix`, `refactor`, `test`, `security`, `performance` |
+
+**Detects:**
+- Anti-patterns: empty catch, hardcoded secrets, eval, innerHTML, generic exceptions
+- Code quality: console statements, field injection, any type, loose equality
+- Structure: method length > 20 lines, class length > 200 lines
+- Missing: tests, interfaces
 
 **Returns:**
-- Code quality thresholds
-- Guardrails for task type
-- Review checklist template
+- Quality score (0-100)
+- CRITICAL issues (must fix)
+- WARNINGS (should fix)
+- INFO (optional)
+- Metrics (lines, methods, classes, interfaces, tests)
+- PASSED/NEEDS WORK verdict
 
 **Example:**
 ```json
@@ -52,6 +61,134 @@ Validate code against coding standards.
   "code": "public class UserService { ... }",
   "task_type": "feature"
 }
+```
+
+**Example Output:**
+```markdown
+# ✅ Code Analysis Results
+
+**GOOD: Code follows most best practices**
+
+**Score: 78/100**
+
+---
+
+## Metrics
+
+| Metric | Value |
+|--------|-------|
+| Total Lines | 45 |
+| Methods | 3 |
+| Interfaces | 1 |
+| Tests | 5 |
+
+---
+
+## Warnings (should fix)
+
+- **Line 12:** Console statement found
+  - Suggestion: Use a proper logging framework in production code
+
+---
+
+## Verdict
+
+**PASSED** - Code meets quality standards.
+```
+
+---
+
+### verify (NEW in v2.0)
+
+**Quality gate** - REQUIRED before presenting code to user.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `code` | string | Yes | All implementation code |
+| `tests` | string | Yes* | All test code (*required for TDD compliance) |
+| `interfaces` | string | No | All interfaces and type definitions |
+| `task_type` | enum | No | One of: `feature`, `bugfix`, `refactor`, `test`, `security`, `performance` |
+
+**Checks:**
+1. Tests are provided (TDD compliance)
+2. Interfaces exist (DI compliance)
+3. No critical code issues
+4. Quality score >= 50
+
+**Returns:**
+- `PASS`: Code meets standards - present to user
+- `FAIL`: Issues listed - fix and verify again
+
+**Workflow:**
+```
+1. Call get_context() → get guidelines
+2. Complete checkpoint JSON
+3. Write code: INTERFACES → TESTS → IMPLEMENTATION
+4. Complete self-review JSON
+5. Call verify() → must PASS
+6. If FAIL: fix issues, call verify again
+7. If PASS: present to user
+```
+
+**Example:**
+```json
+{
+  "code": "class UserServiceImpl implements UserService { ... }",
+  "tests": "describe('UserService', () => { ... })",
+  "interfaces": "interface UserService { getUser(id: string): User; }",
+  "task_type": "feature"
+}
+```
+
+**Example PASS Output:**
+```markdown
+# ✅ VERIFICATION PASSED
+
+**Score: 85/100**
+
+The code meets quality standards and is ready to present to the user.
+
+---
+
+## Verification Summary
+
+- Tests provided: Yes
+- Interfaces provided: Yes
+- Critical issues: 0
+- Warnings: 2
+- Test count: 5
+- Interface count: 2
+
+---
+
+**You may now present this code to the user.**
+```
+
+**Example FAIL Output:**
+```markdown
+# ❌ VERIFICATION FAILED
+
+**Score: 45/100**
+
+The code does not meet quality standards. Fix the issues below and verify again.
+
+---
+
+## Issues to Fix (Blocking)
+
+- No tests provided - TDD requires tests before/with implementation
+- 2 critical code issue(s) detected - see details below
+
+---
+
+## Critical Code Issues
+
+- **Line 5:** Potential hardcoded secret detected
+  - Fix: Use environment variables or a secrets manager
+
+---
+
+**Fix these issues and call `verify` again before presenting code to user.**
 ```
 
 ---

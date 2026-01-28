@@ -17,6 +17,7 @@ import {
   handleProfiles,
   handleSearch,
   handleValidate,
+  handleVerify,
 } from './handlers/index.js';
 
 export type { ToolName } from './definitions.js';
@@ -47,6 +48,9 @@ export async function handleToolCall(
       case 'validate':
         result = await handleValidate(args);
         break;
+      case 'verify':
+        result = await handleVerify(args);
+        break;
       case 'search':
         result = await handleSearch(args);
         break;
@@ -65,7 +69,7 @@ export async function handleToolCall(
           content: [
             {
               type: 'text',
-              text: `Unknown tool: ${name}. Available: get_context, validate, search, profiles, health, init`,
+              text: `Unknown tool: ${name}. Available: get_context, validate, verify, search, profiles, health, init`,
             },
           ],
           isError: true,

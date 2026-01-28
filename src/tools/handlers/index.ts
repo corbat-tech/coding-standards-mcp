@@ -9,3 +9,4 @@ export { handleInit } from './init.js';
 export { handleProfiles } from './profiles.js';
 export { handleSearch } from './search.js';
 export { handleValidate } from './validate.js';
+export { handleVerify } from './verify.js';

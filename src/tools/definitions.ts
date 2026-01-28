@@ -48,21 +48,28 @@ EXAMPLE: get_context({ task: "Create payment service", project_dir: "/path/to/pr
     },
   },
 
-  // VALIDATE - Check code against standards
+  // VALIDATE - Real code analysis
   {
     name: 'validate',
-    description: `Validate code against coding standards. Returns validation criteria and checklist.
+    description: `Analyze code against coding standards with REAL code analysis.
 
 WHEN TO USE:
-- After writing code, before committing
-- During code review
-- To check if code follows project standards
+- After writing code, to check for issues
+- During iterative development
+- Before calling verify for final approval
+
+PERFORMS REAL ANALYSIS:
+- Detects anti-patterns (empty catch, hardcoded secrets, etc.)
+- Measures method/class lengths
+- Checks for interfaces and tests
+- Calculates quality score
 
 RETURNS:
-- Code quality thresholds (max method lines, coverage)
-- Guardrails for the task type
-- Naming convention checks
-- Review checklist (CRITICAL/WARNINGS/Score)
+- Score (0-100)
+- CRITICAL issues (must fix)
+- WARNINGS (should fix)
+- Metrics (lines, methods, tests, etc.)
+- PASSED/NEEDS WORK verdict
 
 EXAMPLE: validate({ code: "public class UserService { ... }", task_type: "feature" })`,
     inputSchema: {
@@ -74,8 +81,60 @@ EXAMPLE: validate({ code: "public class UserService { ... }", task_type: "featur
         },
         task_type: {
           type: 'string',
-          enum: ['feature', 'bugfix', 'refactor', 'test'],
+          enum: ['feature', 'bugfix', 'refactor', 'test', 'security', 'performance'],
           description: 'Type of task for context-aware validation (optional)',
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // VERIFY - Gate before presenting code to user (NEW in v2.0)
+  {
+    name: 'verify',
+    description: `REQUIRED: Verify generated code before presenting to user.
+
+WHEN TO USE:
+- ALWAYS call this AFTER generating code
+- BEFORE presenting code to the user
+- This is the final quality gate
+
+WHAT IT CHECKS:
+- Tests are provided (TDD compliance)
+- Interfaces exist (DI compliance)
+- No critical code issues
+- Quality score >= 50
+
+RETURNS:
+- PASS: Code meets standards, present to user
+- FAIL: Issues to fix, iterate and verify again
+
+WORKFLOW:
+1. Generate code following get_context guidelines
+2. Call verify({ code, tests, interfaces })
+3. If FAIL: fix issues and call verify again
+4. If PASS: present code to user
+
+EXAMPLE: verify({ code: "class UserServiceImpl...", tests: "describe('UserService')...", interfaces: "interface UserService..." })`,
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        code: {
+          type: 'string',
+          description: 'All implementation code',
+        },
+        tests: {
+          type: 'string',
+          description: 'All test code (REQUIRED for TDD compliance)',
+        },
+        interfaces: {
+          type: 'string',
+          description: 'All interfaces and type definitions',
+        },
+        task_type: {
+          type: 'string',
+          enum: ['feature', 'bugfix', 'refactor', 'test', 'security', 'performance'],
+          description: 'Type of task for context-aware verification',
         },
       },
       required: ['code'],
@@ -176,4 +235,4 @@ RETURNS:
 ];
 
 // Tool names for type safety
-export type ToolName = 'get_context' | 'validate' | 'search' | 'profiles' | 'health' | 'init';
+export type ToolName = 'get_context' | 'validate' | 'verify' | 'search' | 'profiles' | 'health' | 'init';
