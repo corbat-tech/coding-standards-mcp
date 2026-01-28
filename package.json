@@ -1,6 +1,6 @@
 {
   "name": "@corbat-tech/coding-standards-mcp",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "AI coding standards that apply themselves - MCP server that enforces production-grade code",
   "mcpName": "io.github.corbat-tech/coding-standards",
   "type": "module",
