@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-01-28
+
+### Added - Smart Enforcement System
+- **New `verify` tool** - Quality gate that must pass before presenting code to user
+  - Validates tests are provided (TDD compliance)
+  - Checks for interfaces (DI compliance)
+  - Detects critical code issues
+  - Returns PASS/FAIL with specific feedback
+
+- **Real code analysis in `validate` tool**
+  - Regex-based anti-pattern detection (15+ patterns)
+  - Method/class length analysis
+  - Quality score calculation (0-100)
+  - Actionable suggestions for each issue
+
+- **New `code-analyzer` module** (`src/analysis/code-analyzer.ts`)
+  - Detects: empty catch, hardcoded secrets, eval, innerHTML, generic exceptions
+  - Detects: console statements, field injection, any type, loose equality
+  - Measures: method lines, class lines, interface count, test count
+
+- **Mandatory Checkpoint JSON** in `get_context` output
+  - Forces LLM to commit to architecture decisions before coding
+  - Includes: interfaces_to_create, tests_to_write, quality_commitments
+
+- **Contractual Response Format** in `get_context` output
+  - Enforces order: CHECKPOINT → INTERFACES → TESTS → IMPLEMENTATION → SELF-REVIEW
+  - Prevents skipping TDD steps
+
+- **Mandatory Self-Review JSON** in `get_context` output
+  - LLM must audit own code: methods_over_20_lines, tests_written, etc.
+  - Must achieve quality_score >= 7 before presenting code
+
+### Changed
+- `get_context` output now includes Smart Enforcement sections (~400 tokens extra)
+- `validate` returns real analysis instead of just checklist
+- Added `verify` to tool list and dispatcher
+
+### Technical
+- 52 new tests (37 for analyzer, 15 for verify)
+- Coverage maintained at 82.62%
+- No new external dependencies
+
+### Breaking Changes
+- `validate` output format changed from checklist to analysis results
+
+---
+
+## [1.1.0] - 2026-01-15
+
 ### Added
 - `search_standards` tool for querying documentation by topic (kafka, docker, testing, etc.)
 - Enhanced Zod schemas for CQRS, Event-Driven, ArchUnit, HttpClients, Observability
