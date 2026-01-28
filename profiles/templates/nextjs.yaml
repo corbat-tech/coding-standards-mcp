@@ -1,0 +1,536 @@
+# ============================================================================
+# CORBAT MCP - Next.js Profile
+# ============================================================================
+# Production-ready standards for Next.js full-stack applications.
+# Based on Next.js 14+ App Router, Server Components, and React best practices.
+# ============================================================================
+
+name: "Next.js Full-Stack Standards"
+description: "Production-ready standards for Next.js with App Router, Server Components, Server Actions, and TypeScript"
+
+# ----------------------------------------------------------------------------
+# ARCHITECTURE
+# ----------------------------------------------------------------------------
+architecture:
+  type: feature-based
+  enforceLayerDependencies: true
+  layers:
+    - name: app
+      description: "Next.js App Router. Contains routes, layouts, pages, and API routes."
+      allowedDependencies:
+        - features
+        - shared
+        - lib
+      directories:
+        - "app"
+        - "app/(routes)"
+        - "app/api"
+
+    - name: features
+      description: "Feature modules. Each feature contains its own components, hooks, and server actions."
+      allowedDependencies:
+        - shared
+        - lib
+      directories:
+        - "features"
+        - "features/*/components"
+        - "features/*/actions"
+        - "features/*/hooks"
+
+    - name: shared
+      description: "Shared components, hooks, and utilities used across features."
+      allowedDependencies:
+        - lib
+      directories:
+        - "components"
+        - "hooks"
+        - "utils"
+
+    - name: lib
+      description: "Core utilities, configurations, and type definitions."
+      allowedDependencies: []
+      directories:
+        - "lib"
+        - "types"
+        - "config"
+
+# ----------------------------------------------------------------------------
+# NEXT.JS FEATURES
+# ----------------------------------------------------------------------------
+nextjsFeatures:
+  version: "14+"
+  appRouter:
+    required: true
+    features:
+      - "Server Components (default)"
+      - "Client Components ('use client')"
+      - "Server Actions ('use server')"
+      - "Parallel Routes"
+      - "Intercepting Routes"
+      - "Route Groups"
+
+  serverComponents:
+    default: true
+    benefits:
+      - "Zero client-side JavaScript for server components"
+      - "Direct database access"
+      - "Secure server-only code"
+      - "Automatic code splitting"
+    patterns:
+      dataFetching: "async components"
+      streaming: "Suspense boundaries"
+      example: |
+        // app/orders/page.tsx (Server Component)
+        export default async function OrdersPage() {
+          const orders = await getOrders(); // Direct DB call
+
+          return (
+            <Suspense fallback={<OrdersSkeleton />}>
+              <OrderList orders={orders} />
+            </Suspense>
+          );
+        }
+
+  clientComponents:
+    directive: "'use client'"
+    useFor:
+      - "Interactive UI (onClick, onChange)"
+      - "Browser APIs (localStorage, window)"
+      - "React hooks (useState, useEffect)"
+      - "Third-party client libraries"
+    avoidFor:
+      - "Data fetching"
+      - "Database access"
+      - "Server-only secrets"
+    example: |
+      'use client';
+
+      export function AddToCartButton({ productId }: { productId: string }) {
+        const [isPending, startTransition] = useTransition();
+
+        return (
+          <button
+            onClick={() => startTransition(() => addToCart(productId))}
+            disabled={isPending}
+          >
+            {isPending ? 'Adding...' : 'Add to Cart'}
+          </button>
+        );
+      }
+
+  serverActions:
+    directive: "'use server'"
+    patterns:
+      formActions: true
+      mutations: true
+      revalidation: true
+    example: |
+      'use server';
+
+      export async function createOrder(formData: FormData) {
+        const validatedData = orderSchema.parse({
+          customerId: formData.get('customerId'),
+          items: JSON.parse(formData.get('items') as string),
+        });
+
+        const order = await db.order.create({ data: validatedData });
+
+        revalidatePath('/orders');
+        redirect(`/orders/${order.id}`);
+      }
+
+# ----------------------------------------------------------------------------
+# RENDERING STRATEGIES
+# ----------------------------------------------------------------------------
+rendering:
+  strategies:
+    static:
+      description: "Pre-rendered at build time"
+      useFor: "Marketing pages, blog posts"
+      example: "export const dynamic = 'force-static'"
+
+    dynamic:
+      description: "Rendered on each request"
+      useFor: "User-specific content, real-time data"
+      example: "export const dynamic = 'force-dynamic'"
+
+    streaming:
+      description: "Progressive rendering with Suspense"
+      useFor: "Complex pages with multiple data sources"
+
+    isr:
+      description: "Incremental Static Regeneration"
+      useFor: "Content that updates periodically"
+      example: "export const revalidate = 3600 // 1 hour"
+
+  caching:
+    fetch:
+      default: "cache: 'force-cache'"
+      revalidate: "next: { revalidate: seconds }"
+      noStore: "cache: 'no-store'"
+    routeSegment:
+      - "export const revalidate = 60"
+      - "export const dynamic = 'force-dynamic'"
+
+# ----------------------------------------------------------------------------
+# CODE QUALITY
+# ----------------------------------------------------------------------------
+codeQuality:
+  maxMethodLines: 30
+  maxClassLines: 200
+  maxFileLines: 300
+  maxMethodParameters: 4
+  maxCyclomaticComplexity: 10
+  requireDocumentation: true
+  requireTests: true
+  minimumTestCoverage: 70
+
+  principles:
+    - "Server Components by default"
+    - "Minimize 'use client' directives"
+    - "Colocate data fetching with components"
+    - "Use Server Actions for mutations"
+    - "Leverage built-in optimizations"
+    - "Progressive enhancement"
+
+  linting:
+    eslint:
+      extends:
+        - "next/core-web-vitals"
+        - "next/typescript"
+      rules:
+        - "@next/next/no-img-element"
+        - "@next/next/no-html-link-for-pages"
+
+# ----------------------------------------------------------------------------
+# NAMING CONVENTIONS
+# ----------------------------------------------------------------------------
+naming:
+  general:
+    component: PascalCase
+    hook: useCamelCase
+    serverAction: camelCase
+    utility: camelCase
+    constant: SCREAMING_SNAKE_CASE
+    type: PascalCase
+    file: kebab-case.tsx
+
+  nextjsConventions:
+    page: "page.tsx"
+    layout: "layout.tsx"
+    loading: "loading.tsx"
+    error: "error.tsx"
+    notFound: "not-found.tsx"
+    template: "template.tsx"
+    routeHandler: "route.ts"
+    middleware: "middleware.ts"
+
+  suffixes:
+    component: ""
+    clientComponent: ""
+    serverAction: "Action"
+    hook: ""
+    schema: "Schema"
+    type: ""
+
+  directories:
+    routeGroups: "(group-name)"
+    parallelRoutes: "@slot-name"
+    interceptingRoutes: "(.)route, (..)route"
+
+# ----------------------------------------------------------------------------
+# DATA FETCHING
+# ----------------------------------------------------------------------------
+dataFetching:
+  serverSide:
+    patterns:
+      - "async Server Components"
+      - "Server Actions"
+      - "Route Handlers"
+    example: |
+      // Fetch in Server Component
+      async function ProductPage({ params }: { params: { id: string } }) {
+        const product = await getProduct(params.id);
+        return <ProductDetails product={product} />;
+      }
+
+  clientSide:
+    patterns:
+      - "TanStack Query (React Query)"
+      - "SWR"
+    useFor:
+      - "Real-time updates"
+      - "Optimistic updates"
+      - "Infinite scrolling"
+    example: |
+      'use client';
+
+      function useOrders() {
+        return useQuery({
+          queryKey: ['orders'],
+          queryFn: () => fetch('/api/orders').then(res => res.json()),
+        });
+      }
+
+  validation:
+    library: "Zod"
+    patterns:
+      - "Schema validation for forms"
+      - "API input validation"
+      - "Type inference"
+    example: |
+      const orderSchema = z.object({
+        customerId: z.string().uuid(),
+        items: z.array(orderItemSchema).min(1),
+      });
+
+      type CreateOrderInput = z.infer<typeof orderSchema>;
+
+# ----------------------------------------------------------------------------
+# TESTING
+# ----------------------------------------------------------------------------
+testing:
+  framework: "Vitest"
+  componentTesting: "React Testing Library"
+  e2e: "Playwright"
+
+  types:
+    unit:
+      location: "__tests__/*.test.ts"
+      coverage: 70
+      patterns:
+        - "Test utilities and helpers"
+        - "Test Server Actions"
+        - "Test data transformations"
+
+    component:
+      location: "__tests__/*.test.tsx"
+      patterns:
+        - "Test user interactions"
+        - "Test accessibility"
+        - "Mock Server Components"
+      example: |
+        import { render, screen } from '@testing-library/react';
+        import userEvent from '@testing-library/user-event';
+
+        test('should add item to cart', async () => {
+          const user = userEvent.setup();
+          render(<AddToCartButton productId="123" />);
+
+          await user.click(screen.getByRole('button', { name: /add to cart/i }));
+
+          expect(screen.getByText(/adding/i)).toBeInTheDocument();
+        });
+
+    e2e:
+      location: "e2e/*.spec.ts"
+      patterns:
+        - "Critical user flows"
+        - "Cross-page interactions"
+      example: |
+        test('should complete checkout flow', async ({ page }) => {
+          await page.goto('/products');
+          await page.click('[data-testid="add-to-cart"]');
+          await page.goto('/cart');
+          await page.click('[data-testid="checkout"]');
+
+          await expect(page.locator('[data-testid="order-confirmation"]'))
+            .toBeVisible();
+        });
+
+# ----------------------------------------------------------------------------
+# PERFORMANCE
+# ----------------------------------------------------------------------------
+performance:
+  coreWebVitals:
+    LCP: "< 2.5s"
+    FID: "< 100ms"
+    CLS: "< 0.1"
+    INP: "< 200ms"
+
+  optimizations:
+    images:
+      component: "next/image"
+      features:
+        - "Automatic optimization"
+        - "Lazy loading"
+        - "Responsive images"
+        - "AVIF/WebP format"
+
+    fonts:
+      component: "next/font"
+      features:
+        - "Zero layout shift"
+        - "Self-hosted fonts"
+        - "Automatic subsetting"
+
+    scripts:
+      component: "next/script"
+      strategies:
+        - "beforeInteractive"
+        - "afterInteractive"
+        - "lazyOnload"
+
+    bundling:
+      - "Dynamic imports"
+      - "Route-based code splitting"
+      - "Tree shaking"
+
+# ----------------------------------------------------------------------------
+# PROJECT STRUCTURE
+# ----------------------------------------------------------------------------
+projectStructure:
+  approach: "Feature-colocation"
+
+  example: |
+    app/
+    ├── (marketing)/
+    │   ├── page.tsx
+    │   └── about/page.tsx
+    ├── (app)/
+    │   ├── layout.tsx
+    │   ├── dashboard/
+    │   │   ├── page.tsx
+    │   │   ├── loading.tsx
+    │   │   └── error.tsx
+    │   └── orders/
+    │       ├── page.tsx
+    │       ├── [id]/page.tsx
+    │       └── actions.ts
+    ├── api/
+    │   └── webhooks/route.ts
+    └── layout.tsx
+    features/
+    ├── orders/
+    │   ├── components/
+    │   ├── actions/
+    │   ├── hooks/
+    │   └── types.ts
+    └── auth/
+    components/
+    ├── ui/
+    └── layout/
+    lib/
+    ├── db.ts
+    ├── auth.ts
+    └── utils.ts
+
+# ----------------------------------------------------------------------------
+# DATABASE
+# ----------------------------------------------------------------------------
+database:
+  orm: "Prisma or Drizzle"
+
+  prisma:
+    patterns:
+      - "Schema-first development"
+      - "Type-safe queries"
+      - "Migrations"
+    example: |
+      // lib/db.ts
+      import { PrismaClient } from '@prisma/client';
+
+      const globalForPrisma = globalThis as unknown as {
+        prisma: PrismaClient | undefined;
+      };
+
+      export const db = globalForPrisma.prisma ?? new PrismaClient();
+
+      if (process.env.NODE_ENV !== 'production') {
+        globalForPrisma.prisma = db;
+      }
+
+  drizzle:
+    patterns:
+      - "SQL-like queries"
+      - "Edge runtime compatible"
+      - "Lightweight"
+
+# ----------------------------------------------------------------------------
+# AUTHENTICATION
+# ----------------------------------------------------------------------------
+authentication:
+  library: "NextAuth.js (Auth.js)"
+
+  patterns:
+    middleware: true
+    serverSession: true
+    clientSession: true
+    example: |
+      // middleware.ts
+      export { auth as middleware } from '@/lib/auth';
+
+      export const config = {
+        matcher: ['/dashboard/:path*', '/api/:path*'],
+      };
+
+      // Server Component
+      async function DashboardPage() {
+        const session = await auth();
+        if (!session) redirect('/login');
+        return <Dashboard user={session.user} />;
+      }
+
+# ----------------------------------------------------------------------------
+# ERROR HANDLING
+# ----------------------------------------------------------------------------
+errorHandling:
+  patterns:
+    errorBoundary: "error.tsx"
+    notFound: "not-found.tsx"
+    serverActions: "try-catch with typed errors"
+
+  example: |
+    // app/orders/error.tsx
+    'use client';
+
+    export default function OrderError({
+      error,
+      reset,
+    }: {
+      error: Error & { digest?: string };
+      reset: () => void;
+    }) {
+      return (
+        <div>
+          <h2>Something went wrong!</h2>
+          <button onClick={reset}>Try again</button>
+        </div>
+      );
+    }
+
+# ----------------------------------------------------------------------------
+# TECHNOLOGIES
+# ----------------------------------------------------------------------------
+technologies:
+  - name: nextjs
+    version: "14+"
+    specificRules:
+      useAppRouter: true
+      useServerComponents: true
+      useServerActions: true
+      useImageOptimization: true
+      useFontOptimization: true
+
+  - name: react
+    version: "18+"
+    specificRules:
+      useFunctionalComponents: true
+      useHooks: true
+      useSuspense: true
+      useTransitions: true
+
+  - name: typescript
+    version: "5+"
+    specificRules:
+      strict: true
+      noImplicitAny: true
+      strictNullChecks: true
+
+  - name: testing
+    specificRules:
+      useVitest: true
+      useReactTestingLibrary: true
+      usePlaywright: true
+      testServerActions: true
+      testAccessibility: true

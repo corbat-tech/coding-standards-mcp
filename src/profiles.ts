@@ -11,6 +11,84 @@ import { DEFAULT_HEXAGONAL_LAYERS, type Profile, ProfileSchema, type StandardDoc
 const CACHE_TTL_MS: number = 60_000;
 
 /**
+ * Deep merge two objects. Child values override parent values.
+ * Arrays are replaced, not merged.
+ */
+function deepMerge<T extends Record<string, unknown>>(parent: T, child: Partial<T>): T {
+  const result = { ...parent };
+
+  for (const key of Object.keys(child) as Array<keyof T>) {
+    const childValue = child[key];
+    const parentValue = parent[key];
+
+    if (childValue === undefined) {
+      continue;
+    }
+
+    if (
+      childValue !== null &&
+      typeof childValue === 'object' &&
+      !Array.isArray(childValue) &&
+      parentValue !== null &&
+      typeof parentValue === 'object' &&
+      !Array.isArray(parentValue)
+    ) {
+      // Recursively merge objects
+      result[key] = deepMerge(
+        parentValue as Record<string, unknown>,
+        childValue as Record<string, unknown>
+      ) as T[keyof T];
+    } else {
+      // Replace value (including arrays)
+      result[key] = childValue as T[keyof T];
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Resolve profile inheritance chain.
+ * Returns a merged profile with all inherited properties.
+ */
+function resolveProfileInheritance(
+  profile: Profile,
+  allProfiles: Map<string, Profile>,
+  visited: Set<string> = new Set()
+): Profile {
+  const extendsId = (profile as Record<string, unknown>).extends as string | undefined;
+
+  if (!extendsId) {
+    return profile;
+  }
+
+  // Prevent circular inheritance
+  if (visited.has(extendsId)) {
+    console.error(`Circular inheritance detected: ${extendsId}`);
+    return profile;
+  }
+
+  const parentProfile = allProfiles.get(extendsId);
+  if (!parentProfile) {
+    console.error(`Parent profile "${extendsId}" not found for inheritance`);
+    return profile;
+  }
+
+  visited.add(extendsId);
+
+  // Recursively resolve parent's inheritance first
+  const resolvedParent = resolveProfileInheritance(parentProfile, allProfiles, visited);
+
+  // Merge parent into child (child overrides parent)
+  const merged = deepMerge(resolvedParent as Record<string, unknown>, profile as Record<string, unknown>) as Profile;
+
+  // Remove the 'extends' field from the merged result
+  delete (merged as Record<string, unknown>).extends;
+
+  return merged;
+}
+
+/**
  * Cache for loaded profiles and standards.
  */
 let profilesCache: Map<string, Profile> | null = null;
@@ -38,32 +116,50 @@ export function invalidateCache(): void {
 }
 
 /**
- * Load profiles from a specific directory.
+ * Load a single profile from a YAML file.
+ */
+async function loadProfileFromFile(
+  filePath: string
+): Promise<{ id: string; profile: Profile } | null> {
+  try {
+    const fileStat = await stat(filePath);
+    if (fileStat.isDirectory()) return null;
+
+    const content = await readFile(filePath, 'utf-8');
+    const rawData = parse(content);
+    const fileName = basename(filePath);
+    const profileId = basename(fileName, fileName.endsWith('.yaml') ? '.yaml' : '.yml');
+
+    const profile = ProfileSchema.parse(rawData);
+
+    // Apply default hexagonal layers if not specified
+    if (profile.architecture?.type === 'hexagonal' && !profile.architecture.layers) {
+      profile.architecture.layers = DEFAULT_HEXAGONAL_LAYERS;
+    }
+
+    return { id: profileId, profile };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load profiles from a specific directory (parallelized).
  */
 async function loadProfilesFromDir(dir: string, profiles: Map<string, Profile>): Promise<void> {
   try {
     const files = await readdir(dir);
     const yamlFiles = files.filter((f) => (f.endsWith('.yaml') || f.endsWith('.yml')) && !f.startsWith('_'));
 
-    for (const file of yamlFiles) {
-      const filePath = join(dir, file);
-      const fileStat = await stat(filePath);
+    // Load all profiles in parallel
+    const loadPromises = yamlFiles.map((file) => loadProfileFromFile(join(dir, file)));
+    const results = await Promise.all(loadPromises);
 
-      // Skip directories
-      if (fileStat.isDirectory()) continue;
-
-      const content = await readFile(filePath, 'utf-8');
-      const rawData = parse(content);
-      const profileId = basename(file, file.endsWith('.yaml') ? '.yaml' : '.yml');
-
-      const profile = ProfileSchema.parse(rawData);
-
-      // Apply default hexagonal layers if not specified
-      if (profile.architecture?.type === 'hexagonal' && !profile.architecture.layers) {
-        profile.architecture.layers = DEFAULT_HEXAGONAL_LAYERS;
+    // Add loaded profiles to the map
+    for (const result of results) {
+      if (result) {
+        profiles.set(result.id, result.profile);
       }
-
-      profiles.set(profileId, profile);
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -84,16 +180,39 @@ export async function loadProfiles(): Promise<Map<string, Profile>> {
 
   profilesCache = new Map();
 
-  // Load from templates first (official profiles)
+  // Define directories to load from (in priority order - later overrides earlier)
   const templatesDir = join(config.profilesDir, 'templates');
-  await loadProfilesFromDir(templatesDir, profilesCache);
-
-  // Load from custom (user profiles - can override templates)
   const customDir = join(config.profilesDir, 'custom');
-  await loadProfilesFromDir(customDir, profilesCache);
 
-  // Fallback: also check root profiles dir for backwards compatibility
-  await loadProfilesFromDir(config.profilesDir, profilesCache);
+  // Create separate maps for each source
+  const templateProfiles = new Map<string, Profile>();
+  const customProfiles = new Map<string, Profile>();
+  const rootProfiles = new Map<string, Profile>();
+
+  // Load all directories in parallel
+  await Promise.all([
+    loadProfilesFromDir(templatesDir, templateProfiles),
+    loadProfilesFromDir(customDir, customProfiles),
+    loadProfilesFromDir(config.profilesDir, rootProfiles),
+  ]);
+
+  // Merge in priority order: templates < root < custom
+  for (const [id, profile] of templateProfiles) {
+    profilesCache.set(id, profile);
+  }
+  for (const [id, profile] of rootProfiles) {
+    profilesCache.set(id, profile);
+  }
+  for (const [id, profile] of customProfiles) {
+    profilesCache.set(id, profile);
+  }
+
+  // Resolve inheritance for all profiles
+  const resolvedProfiles = new Map<string, Profile>();
+  for (const [id, profile] of profilesCache) {
+    resolvedProfiles.set(id, resolveProfileInheritance(profile, profilesCache));
+  }
+  profilesCache = resolvedProfiles;
 
   profilesCacheTime = Date.now();
   return profilesCache;
@@ -116,49 +235,60 @@ export async function listProfiles(): Promise<Array<{ id: string; profile: Profi
 }
 
 /**
- * Load all standards from markdown files.
+ * Load all standards from markdown files (parallelized).
  */
 export async function loadStandards(): Promise<StandardDocument[]> {
   if (standardsCache && isCacheValid(standardsCacheTime)) {
     return standardsCache;
   }
 
-  standardsCache = [];
-
   try {
-    await scanStandardsDirectory(config.standardsDir, '');
+    standardsCache = await scanStandardsDirectory(config.standardsDir, '');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       throw error;
     }
+    standardsCache = [];
   }
 
   standardsCacheTime = Date.now();
   return standardsCache;
 }
 
-async function scanStandardsDirectory(dir: string, category: string): Promise<void> {
+async function scanStandardsDirectory(dir: string, category: string): Promise<StandardDocument[]> {
   const entries = await readdir(dir);
+  const documents: StandardDocument[] = [];
 
-  for (const entry of entries) {
+  // Process all entries in parallel
+  const processEntry = async (entry: string): Promise<StandardDocument[]> => {
     const fullPath = join(dir, entry);
     const stats = await stat(fullPath);
 
     if (stats.isDirectory()) {
-      await scanStandardsDirectory(fullPath, entry);
+      return scanStandardsDirectory(fullPath, entry);
     } else if (entry.endsWith('.md')) {
       const content = await readFile(fullPath, 'utf-8');
       const id = generateStandardId(fullPath);
       const name = extractStandardName(content, entry);
 
-      standardsCache?.push({
-        id,
-        name,
-        category: category || 'general',
-        content,
-      });
+      return [
+        {
+          id,
+          name,
+          category: category || 'general',
+          content,
+        },
+      ];
     }
+    return [];
+  };
+
+  const results = await Promise.all(entries.map(processEntry));
+  for (const result of results) {
+    documents.push(...result);
   }
+
+  return documents;
 }
 
 function generateStandardId(filePath: string): string {
@@ -548,18 +678,27 @@ function formatRemainingProfileSections(profile: Profile): string[] {
   }
 
   // Database
-  if (profile.database) {
+  if (profile.database && Object.keys(profile.database).length > 0) {
     lines.push('## Database', '');
-    if (profile.database.migrations) {
-      lines.push(`- Migrations: ${profile.database.migrations.tool}`);
-      if (profile.database.migrations.naming) lines.push(`- Naming: ${profile.database.migrations.naming}`);
+    const db = profile.database as Record<string, unknown>;
+    const migrations = db.migrations as Record<string, unknown> | undefined;
+    const auditing = db.auditing as Record<string, unknown> | undefined;
+    const softDelete = db.softDelete as Record<string, unknown> | undefined;
+
+    if (migrations) {
+      if (migrations.tool) lines.push(`- Migrations: ${migrations.tool}`);
+      if (migrations.naming) lines.push(`- Naming: ${migrations.naming}`);
     }
-    if (profile.database.auditing?.enabled) {
-      lines.push(`- Auditing: enabled (fields: ${profile.database.auditing.fields?.join(', ') || 'N/A'})`);
+    if (auditing?.enabled) {
+      const fields = auditing.fields as string[] | undefined;
+      lines.push(`- Auditing: enabled (fields: ${fields?.join(', ') || 'N/A'})`);
     }
-    if (profile.database.softDelete?.recommended) {
-      lines.push(`- Soft Delete: recommended (field: ${profile.database.softDelete.field || 'deletedAt'})`);
+    if (softDelete?.recommended) {
+      lines.push(`- Soft Delete: recommended (field: ${softDelete.field || 'deletedAt'})`);
     }
+    // Handle additional database fields dynamically
+    if (db.orm) lines.push(`- ORM: ${db.orm}`);
+    if (db.driver) lines.push(`- Driver: ${db.driver}`);
     lines.push('');
   }
 

@@ -16,7 +16,7 @@ import {
 import { config } from './config.js';
 import { handleGetPrompt, prompts } from './prompts.js';
 import { listResources, readResource } from './resources.js';
-import { handleToolCall, tools } from './tools.js';
+import { handleToolCall, tools } from './tools/index.js';
 
 /**
  * Create and configure the MCP server.

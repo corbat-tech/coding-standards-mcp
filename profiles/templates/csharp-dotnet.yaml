@@ -1,0 +1,529 @@
+# ============================================================================
+# CORBAT MCP - C# + ASP.NET Core Profile
+# ============================================================================
+# Production-ready standards for C# ASP.NET Core backend applications.
+# Based on Microsoft guidelines, Clean Architecture, and modern C# features.
+# ============================================================================
+
+name: "C# ASP.NET Core Standards"
+description: "Production-ready standards for C# ASP.NET Core with Clean Architecture, CQRS, and modern C# 12 features"
+
+# ----------------------------------------------------------------------------
+# ARCHITECTURE
+# ----------------------------------------------------------------------------
+architecture:
+  type: clean
+  enforceLayerDependencies: true
+  layers:
+    - name: Domain
+      description: "Core business logic. Contains entities, value objects, aggregates, and domain events. No external dependencies."
+      allowedDependencies: []
+      projects:
+        - "*.Domain"
+      namespaces:
+        - "*.Domain.Entities"
+        - "*.Domain.ValueObjects"
+        - "*.Domain.Events"
+        - "*.Domain.Exceptions"
+        - "*.Domain.Interfaces"
+
+    - name: Application
+      description: "Use cases and application services. Contains commands, queries, handlers, and DTOs."
+      allowedDependencies:
+        - Domain
+      projects:
+        - "*.Application"
+      namespaces:
+        - "*.Application.Commands"
+        - "*.Application.Queries"
+        - "*.Application.Handlers"
+        - "*.Application.DTOs"
+        - "*.Application.Interfaces"
+
+    - name: Infrastructure
+      description: "External concerns: database, external APIs, messaging, caching."
+      allowedDependencies:
+        - Domain
+        - Application
+      projects:
+        - "*.Infrastructure"
+      namespaces:
+        - "*.Infrastructure.Persistence"
+        - "*.Infrastructure.Services"
+        - "*.Infrastructure.Messaging"
+
+    - name: WebApi
+      description: "API layer: controllers, filters, middleware."
+      allowedDependencies:
+        - Domain
+        - Application
+        - Infrastructure
+      projects:
+        - "*.WebApi"
+        - "*.Api"
+      namespaces:
+        - "*.WebApi.Controllers"
+        - "*.WebApi.Filters"
+        - "*.WebApi.Middleware"
+
+  architectureTests:
+    tool: "NetArchTest"
+    enabled: true
+    rules:
+      - "Domain should not reference Application"
+      - "Domain should not reference Infrastructure"
+      - "Application should not reference Infrastructure"
+      - "Domain should not reference WebApi"
+
+# ----------------------------------------------------------------------------
+# C# FEATURES (C# 12)
+# ----------------------------------------------------------------------------
+csharpFeatures:
+  version: "12"
+
+  nullableReferenceTypes:
+    enabled: true
+    treatWarningsAsErrors: true
+    annotations: true
+    analysis: true
+
+  records:
+    useForDTOs: true
+    useForValueObjects: true
+    useForCommands: true
+    useForQueries: true
+    examples:
+      - "public record CreateOrderCommand(Guid CustomerId, List<OrderItem> Items);"
+      - "public record OrderResponse(Guid Id, string Status, decimal Total);"
+      - "public record Money(decimal Amount, string Currency);"
+
+  primaryConstructors:
+    useForDI: true
+    useForRecords: true
+    example: |
+      public class OrderService(
+          IOrderRepository repository,
+          ILogger<OrderService> logger)
+      {
+          public async Task<Order> GetAsync(OrderId id) => ...
+      }
+
+  patternMatching:
+    useSwitch: true
+    useIsPattern: true
+    usePropertyPattern: true
+    examples:
+      - |
+        return order.Status switch
+        {
+            OrderStatus.Pending => HandlePending(order),
+            OrderStatus.Confirmed => HandleConfirmed(order),
+            OrderStatus.Shipped { TrackingNumber: var tn } => HandleShipped(order, tn),
+            _ => throw new InvalidOperationException()
+        };
+
+  fileScopedNamespaces: true
+  implicitUsings: true
+  rawStringLiterals: true
+  requiredMembers: true
+  initOnlySetters: true
+
+# ----------------------------------------------------------------------------
+# CQRS + MEDIATR
+# ----------------------------------------------------------------------------
+cqrs:
+  enabled: true
+  library: "MediatR"
+  separation: "logical"
+
+  patterns:
+    commands:
+      suffix: "Command"
+      handler: "CommandHandler"
+      returnType: "Result<T>"
+      example: |
+        public record CreateOrderCommand(
+            Guid CustomerId,
+            List<OrderItemDto> Items
+        ) : IRequest<Result<OrderId>>;
+
+        public class CreateOrderCommandHandler(
+            IOrderRepository repository,
+            IUnitOfWork unitOfWork)
+            : IRequestHandler<CreateOrderCommand, Result<OrderId>>
+        {
+            public async Task<Result<OrderId>> Handle(
+                CreateOrderCommand request,
+                CancellationToken cancellationToken)
+            {
+                // Implementation
+            }
+        }
+
+    queries:
+      suffix: "Query"
+      handler: "QueryHandler"
+      returnType: "Result<T>"
+      example: |
+        public record GetOrderByIdQuery(Guid OrderId) : IRequest<Result<OrderResponse>>;
+
+  behaviors:
+    - "ValidationBehavior"
+    - "LoggingBehavior"
+    - "TransactionBehavior"
+
+# ----------------------------------------------------------------------------
+# CODE QUALITY
+# ----------------------------------------------------------------------------
+codeQuality:
+  maxMethodLines: 25
+  maxClassLines: 200
+  maxFileLines: 400
+  maxMethodParameters: 4
+  maxCyclomaticComplexity: 10
+  requireDocumentation: true
+  requireTests: true
+  minimumTestCoverage: 80
+
+  principles:
+    - "SOLID principles"
+    - "DRY (Don't Repeat Yourself)"
+    - "Prefer composition over inheritance"
+    - "Depend on abstractions, not concretions"
+    - "Fail fast"
+    - "Make illegal states unrepresentable"
+
+  analyzers:
+    - "Microsoft.CodeAnalysis.NetAnalyzers"
+    - "StyleCop.Analyzers"
+    - "SonarAnalyzer.CSharp"
+    - "Roslynator.Analyzers"
+
+  editorconfig:
+    enabled: true
+    treatWarningsAsErrors: true
+
+# ----------------------------------------------------------------------------
+# NAMING CONVENTIONS
+# ----------------------------------------------------------------------------
+naming:
+  general:
+    class: PascalCase
+    interface: IPascalCase
+    method: PascalCase
+    property: PascalCase
+    field: _camelCase
+    parameter: camelCase
+    constant: PascalCase
+    namespace: PascalCase.Dot.Separated
+    file: PascalCase.cs
+
+  suffixes:
+    controller: "Controller"
+    service: "Service"
+    repository: "Repository"
+    handler: "Handler"
+    validator: "Validator"
+    mapper: "Mapper"
+    dto: "Dto|Request|Response"
+    exception: "Exception"
+    configuration: "Configuration"
+    options: "Options"
+
+  testing:
+    testClass: "Tests"
+    integrationTest: "IntegrationTests"
+    testMethod: "MethodName_Scenario_ExpectedResult"
+    fixture: "Fixture"
+
+# ----------------------------------------------------------------------------
+# TESTING
+# ----------------------------------------------------------------------------
+testing:
+  framework: "xUnit"
+  assertionLibrary: "FluentAssertions"
+  mockingLibrary: "NSubstitute"
+
+  types:
+    unit:
+      suffix: "Tests"
+      location: "tests/UnitTests"
+      coverage: 80
+      patterns:
+        - "Arrange-Act-Assert"
+        - "Given-When-Then"
+
+    integration:
+      suffix: "IntegrationTests"
+      location: "tests/IntegrationTests"
+      useWebApplicationFactory: true
+      useTestcontainers: true
+      useRespawn: true
+
+    architecture:
+      tool: "NetArchTest"
+      location: "tests/ArchitectureTests"
+
+  patterns:
+    fluentAssertions: true
+    nsubstitute: true
+    autoFixture: true
+    bogus: true
+    example: |
+      [Fact]
+      public async Task CreateOrder_WithValidItems_ReturnsOrderId()
+      {
+          // Arrange
+          var command = new CreateOrderCommand(
+              CustomerId: Guid.NewGuid(),
+              Items: [new OrderItemDto("SKU-001", 2)]
+          );
+
+          _orderRepository
+              .AddAsync(Arg.Any<Order>())
+              .Returns(Task.CompletedTask);
+
+          // Act
+          var result = await _handler.Handle(command, CancellationToken.None);
+
+          // Assert
+          result.IsSuccess.Should().BeTrue();
+          result.Value.Should().NotBeEmpty();
+          await _orderRepository.Received(1).AddAsync(Arg.Any<Order>());
+      }
+
+  testcontainers:
+    enabled: true
+    containers:
+      - "PostgreSQL"
+      - "SqlServer"
+      - "Redis"
+      - "RabbitMQ"
+
+# ----------------------------------------------------------------------------
+# VALIDATION
+# ----------------------------------------------------------------------------
+validation:
+  library: "FluentValidation"
+  integration: "MediatR pipeline"
+
+  patterns:
+    commandValidation: true
+    dtoValidation: true
+    domainValidation: true
+    example: |
+      public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
+      {
+          public CreateOrderCommandValidator()
+          {
+              RuleFor(x => x.CustomerId).NotEmpty();
+              RuleFor(x => x.Items).NotEmpty();
+              RuleForEach(x => x.Items).ChildRules(item =>
+              {
+                  item.RuleFor(i => i.Quantity).GreaterThan(0);
+              });
+          }
+      }
+
+# ----------------------------------------------------------------------------
+# ERROR HANDLING
+# ----------------------------------------------------------------------------
+errorHandling:
+  format: "RFC 7807 Problem Details"
+  globalHandler: "ExceptionMiddleware"
+
+  resultPattern:
+    enabled: true
+    library: "FluentResults or Ardalis.Result"
+    example: |
+      public async Task<Result<Order>> GetOrderAsync(OrderId id)
+      {
+          var order = await _repository.GetByIdAsync(id);
+          if (order is null)
+              return Result.Fail<Order>($"Order {id} not found");
+
+          return Result.Ok(order);
+      }
+
+  customExceptions:
+    domain:
+      - "DomainException"
+      - "EntityNotFoundException"
+      - "BusinessRuleViolationException"
+    application:
+      - "ValidationException"
+      - "UnauthorizedException"
+
+  problemDetails:
+    enabled: true
+    includeExceptionDetails: "Development only"
+
+# ----------------------------------------------------------------------------
+# OBSERVABILITY
+# ----------------------------------------------------------------------------
+observability:
+  enabled: true
+
+  logging:
+    framework: "Serilog"
+    format: "JSON"
+    structuredLogging: true
+    enrichers:
+      - "FromLogContext"
+      - "WithMachineName"
+      - "WithEnvironmentName"
+    sinks:
+      - "Console"
+      - "Seq"
+      - "ApplicationInsights"
+    example: |
+      Log.Information(
+          "Processing order {OrderId} for customer {CustomerId}",
+          order.Id,
+          order.CustomerId);
+
+  metrics:
+    framework: "OpenTelemetry"
+    exporters:
+      - "Prometheus"
+      - "ApplicationInsights"
+
+  tracing:
+    framework: "OpenTelemetry"
+    propagation: "W3C"
+    exporters:
+      - "Jaeger"
+      - "ApplicationInsights"
+
+  healthChecks:
+    library: "AspNetCore.HealthChecks"
+    endpoints:
+      - "/health"
+      - "/health/ready"
+      - "/health/live"
+    checks:
+      - "Database"
+      - "Redis"
+      - "RabbitMQ"
+      - "External APIs"
+
+# ----------------------------------------------------------------------------
+# DATABASE
+# ----------------------------------------------------------------------------
+database:
+  orm: "Entity Framework Core"
+
+  patterns:
+    repository: true
+    unitOfWork: true
+    specification: true
+    softDelete: true
+
+  migrations:
+    tool: "EF Core Migrations"
+    location: "Infrastructure/Persistence/Migrations"
+
+  configuration:
+    approach: "Fluent API"
+    location: "Infrastructure/Persistence/Configurations"
+
+  queryOptimization:
+    splitQueries: true
+    noTracking: true
+    projections: true
+    example: |
+      public async Task<Order?> GetByIdAsync(OrderId id)
+      {
+          return await _context.Orders
+              .AsNoTracking()
+              .Include(o => o.Items)
+              .AsSplitQuery()
+              .FirstOrDefaultAsync(o => o.Id == id);
+      }
+
+# ----------------------------------------------------------------------------
+# API DESIGN
+# ----------------------------------------------------------------------------
+apiDesign:
+  approach: "Minimal APIs or Controllers"
+
+  minimalApis:
+    enabled: true
+    grouping: true
+    example: |
+      app.MapGroup("/api/orders")
+          .MapOrderEndpoints()
+          .RequireAuthorization()
+          .WithTags("Orders");
+
+  controllers:
+    baseClass: "ControllerBase"
+    attributes:
+      - "[ApiController]"
+      - "[Route(\"api/[controller]\")]"
+
+  versioning:
+    enabled: true
+    strategy: "URL path (/api/v1/)"
+
+  documentation:
+    tool: "Swashbuckle or NSwag"
+    xmlComments: true
+
+# ----------------------------------------------------------------------------
+# DEPENDENCY INJECTION
+# ----------------------------------------------------------------------------
+dependencyInjection:
+  container: "Microsoft.Extensions.DependencyInjection"
+
+  patterns:
+    scrutor: true
+    decorators: true
+    factories: true
+    example: |
+      services.Scan(scan => scan
+          .FromAssemblyOf<ApplicationAssemblyMarker>()
+          .AddClasses(classes => classes.AssignableTo(typeof(IRequestHandler<,>)))
+          .AsImplementedInterfaces()
+          .WithScopedLifetime());
+
+  lifetimes:
+    singleton: "Stateless services, caches"
+    scoped: "DbContext, repositories, unit of work"
+    transient: "Lightweight, stateless"
+
+# ----------------------------------------------------------------------------
+# TECHNOLOGIES
+# ----------------------------------------------------------------------------
+technologies:
+  - name: csharp
+    version: "12"
+    specificRules:
+      useNullableReferenceTypes: true
+      useRecords: true
+      usePrimaryConstructors: true
+      usePatternMatching: true
+      useFileScopedNamespaces: true
+
+  - name: aspnetcore
+    version: "8.0"
+    specificRules:
+      useMinimalApis: true
+      useProblemDetails: true
+      useEndpointFilters: true
+      useOutputCaching: true
+
+  - name: efcore
+    version: "8.0"
+    specificRules:
+      useAsNoTracking: true
+      useSplitQueries: true
+      useCompiledQueries: true
+
+  - name: testing
+    specificRules:
+      useXUnit: true
+      useFluentAssertions: true
+      useNSubstitute: true
+      useTestcontainers: true
+      useRespawn: true

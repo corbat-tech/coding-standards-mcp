@@ -94,7 +94,7 @@ async function handleImplementPrompt(args: Record<string, string> | undefined): 
   if (!profile) return null;
 
   // Get guardrails
-  const guardrails = getGuardrails(taskType, projectConfig);
+  const guardrails = await getGuardrails(taskType, projectConfig);
   const projectRules = getProjectRules(taskType, projectConfig);
 
   // Build prompt

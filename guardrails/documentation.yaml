@@ -1,0 +1,184 @@
+# ============================================================================
+# CORBAT MCP - Documentation Guardrails
+# ============================================================================
+# Rules and guidelines for writing effective documentation.
+# Focus on clarity, maintainability, and usefulness.
+# ============================================================================
+
+taskType: documentation
+
+mandatory:
+  - "Use clear, concise language"
+  - "Include code examples where applicable"
+  - "Keep documentation close to code"
+  - "Document the WHY, not just the WHAT"
+  - "Update documentation when code changes"
+
+recommended:
+  - "Use consistent formatting"
+  - "Include diagrams for complex flows"
+  - "Document assumptions and constraints"
+  - "Keep README updated"
+  - "Use standard documentation formats (JSDoc, Javadoc, etc.)"
+  - "Include getting started guides"
+  - "Document error scenarios"
+
+avoid:
+  - "Outdated documentation"
+  - "Duplicating code in comments"
+  - "Over-documenting obvious code"
+  - "Documentation without context"
+  - "Comments that explain WHAT instead of WHY"
+  - "Commented-out code"
+  - "TODO comments without tickets"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Assess"
+      description: "Understand what needs documentation"
+      actions:
+        - "Identify the audience"
+        - "Determine the documentation type needed"
+        - "Review existing documentation"
+        - "Identify gaps"
+
+    - name: "Plan"
+      description: "Structure the documentation"
+      actions:
+        - "Create outline"
+        - "Identify examples needed"
+        - "Plan diagrams if needed"
+        - "Consider different experience levels"
+
+    - name: "Write"
+      description: "Create the documentation"
+      actions:
+        - "Write clear, concise content"
+        - "Include practical examples"
+        - "Use consistent terminology"
+        - "Add links to related docs"
+
+    - name: "Review"
+      description: "Ensure quality"
+      actions:
+        - "Check for accuracy"
+        - "Verify examples work"
+        - "Test instructions end-to-end"
+        - "Get feedback from target audience"
+
+# Documentation types
+types:
+  readme:
+    purpose: "Project overview and getting started"
+    includes:
+      - "Project description"
+      - "Installation instructions"
+      - "Quick start guide"
+      - "Links to detailed docs"
+
+  api:
+    purpose: "Reference for developers using the API"
+    includes:
+      - "Endpoint descriptions"
+      - "Parameters and types"
+      - "Response formats"
+      - "Error codes"
+      - "Examples"
+
+  architecture:
+    purpose: "System design and decisions"
+    includes:
+      - "High-level overview"
+      - "Component interactions"
+      - "Design decisions and rationale"
+      - "Diagrams"
+
+  inline:
+    purpose: "Explain complex code"
+    includes:
+      - "WHY something is done"
+      - "Non-obvious behavior"
+      - "Business rules"
+      - "Performance considerations"
+
+  changelog:
+    purpose: "Track changes over time"
+    includes:
+      - "Version numbers"
+      - "Breaking changes"
+      - "New features"
+      - "Bug fixes"
+
+# Best practices
+bestPractices:
+  comments:
+    good:
+      - "// Retry 3 times because the external service is flaky"
+      - "// Using BigDecimal for money to avoid floating point errors"
+    bad:
+      - "// Increment counter by 1"
+      - "// Call the API"
+
+  apiDocs:
+    good:
+      - "Throws IllegalArgumentException if amount is negative"
+      - "Returns empty list if no results found"
+    bad:
+      - "Gets the thing"
+      - "Does stuff"
+
+  readme:
+    good:
+      - "Clear installation steps with prerequisites"
+      - "Working code examples"
+    bad:
+      - "Incomplete setup instructions"
+      - "Examples that don't compile"
+
+# Templates
+templates:
+  methodDoc: |
+    /**
+     * [Brief description of what the method does]
+     *
+     * @param paramName [Description of parameter]
+     * @return [Description of return value]
+     * @throws ExceptionType [When this exception is thrown]
+     *
+     * @example
+     * ```
+     * [Working code example]
+     * ```
+     */
+
+  classDoc: |
+    /**
+     * [Brief description of the class responsibility]
+     *
+     * [Longer description if needed, explaining:
+     *  - When to use this class
+     *  - Key behaviors
+     *  - Thread safety considerations]
+     *
+     * @see RelatedClass
+     */
+
+  readmeSection: |
+    ## [Section Title]
+
+    [Brief description]
+
+    ### Prerequisites
+    - [Requirement 1]
+    - [Requirement 2]
+
+    ### Usage
+    ```language
+    [Code example]
+    ```
+
+    ### Configuration
+    | Option | Description | Default |
+    |--------|-------------|---------|
+    | option1 | What it does | value |

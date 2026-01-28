@@ -1,0 +1,547 @@
+# ============================================================================
+# CORBAT MCP - Flutter/Dart Profile
+# ============================================================================
+# Production-ready standards for Flutter cross-platform applications.
+# Based on Flutter best practices, Dart style guide, and clean architecture.
+# ============================================================================
+
+name: "Flutter Dart Standards"
+description: "Production-ready standards for Flutter apps with clean architecture, state management, and comprehensive testing"
+
+# ----------------------------------------------------------------------------
+# ARCHITECTURE
+# ----------------------------------------------------------------------------
+architecture:
+  type: clean
+  enforceLayerDependencies: true
+  layers:
+    - name: domain
+      description: "Core business logic. Pure Dart with no Flutter dependencies. Contains entities, use cases, and repository interfaces."
+      allowedDependencies: []
+      directories:
+        - "lib/domain"
+        - "lib/domain/entities"
+        - "lib/domain/repositories"
+        - "lib/domain/usecases"
+        - "lib/domain/failures"
+
+    - name: data
+      description: "Data layer. Implements repositories, data sources, and models."
+      allowedDependencies:
+        - domain
+      directories:
+        - "lib/data"
+        - "lib/data/repositories"
+        - "lib/data/datasources"
+        - "lib/data/models"
+
+    - name: presentation
+      description: "UI layer. Contains widgets, pages, and state management."
+      allowedDependencies:
+        - domain
+      directories:
+        - "lib/presentation"
+        - "lib/presentation/pages"
+        - "lib/presentation/widgets"
+        - "lib/presentation/bloc"
+        - "lib/presentation/providers"
+
+# ----------------------------------------------------------------------------
+# DART FEATURES
+# ----------------------------------------------------------------------------
+dartFeatures:
+  version: "3.0+"
+
+  nullSafety:
+    enabled: true
+    soundNullSafety: true
+    avoidLateUnnecessarily: true
+    useNullableTypes: true
+    examples:
+      - "Use ? for nullable types"
+      - "Use ! only when certain"
+      - "Prefer ?? for default values"
+      - "Use ?. for null-safe access"
+
+  records:
+    enabled: true
+    useForMultipleReturns: true
+    useForDTOs: true
+    example: "(String name, int age) getPerson() => ('John', 30);"
+
+  patterns:
+    enabled: true
+    switchExpressions: true
+    destructuring: true
+    guards: true
+    example: |
+      String describe(Object obj) => switch (obj) {
+        int n when n < 0 => 'negative',
+        int n => 'positive: $n',
+        String s => 'string: $s',
+        _ => 'unknown',
+      };
+
+  extensionTypes:
+    enabled: true
+    useForTypeAliases: true
+
+  sealed:
+    useForStates: true
+    useForEvents: true
+    example: |
+      sealed class AuthState {}
+      class AuthInitial extends AuthState {}
+      class AuthLoading extends AuthState {}
+      class AuthSuccess extends AuthState {
+        final User user;
+        AuthSuccess(this.user);
+      }
+      class AuthFailure extends AuthState {
+        final String message;
+        AuthFailure(this.message);
+      }
+
+# ----------------------------------------------------------------------------
+# STATE MANAGEMENT
+# ----------------------------------------------------------------------------
+stateManagement:
+  preferred:
+    - name: "Riverpod"
+      version: "2.x"
+      useCase: "Recommended for most apps"
+    - name: "BLoC"
+      version: "8.x"
+      useCase: "Enterprise apps, strict separation"
+
+  riverpod:
+    enabled: true
+    patterns:
+      providers: true
+      stateNotifier: true
+      asyncNotifier: true
+      codeGeneration: true
+    example: |
+      @riverpod
+      class OrderNotifier extends _$OrderNotifier {
+        @override
+        FutureOr<List<Order>> build() async {
+          return ref.watch(orderRepositoryProvider).getOrders();
+        }
+
+        Future<void> addOrder(Order order) async {
+          state = const AsyncLoading();
+          state = await AsyncValue.guard(() async {
+            await ref.read(orderRepositoryProvider).addOrder(order);
+            return ref.read(orderRepositoryProvider).getOrders();
+          });
+        }
+      }
+
+  bloc:
+    enabled: true
+    patterns:
+      events: true
+      states: true
+      cubits: true
+      freezed: true
+    example: |
+      @freezed
+      class OrderEvent with _$OrderEvent {
+        const factory OrderEvent.loadOrders() = LoadOrders;
+        const factory OrderEvent.addOrder(Order order) = AddOrder;
+      }
+
+      @freezed
+      class OrderState with _$OrderState {
+        const factory OrderState.initial() = OrderInitial;
+        const factory OrderState.loading() = OrderLoading;
+        const factory OrderState.loaded(List<Order> orders) = OrderLoaded;
+        const factory OrderState.error(String message) = OrderError;
+      }
+
+# ----------------------------------------------------------------------------
+# WIDGET PATTERNS
+# ----------------------------------------------------------------------------
+widgets:
+  principles:
+    composition: true
+    singleResponsibility: true
+    extractWidgets: true
+    constConstructors: true
+
+  structure:
+    maxBuildMethodLines: 50
+    extractLargeWidgets: true
+    usePrivateWidgets: true
+    example: |
+      class OrderListPage extends StatelessWidget {
+        const OrderListPage({super.key});
+
+        @override
+        Widget build(BuildContext context) {
+          return Scaffold(
+            appBar: const _OrderAppBar(),
+            body: const _OrderList(),
+            floatingActionButton: const _AddOrderFab(),
+          );
+        }
+      }
+
+  performance:
+    useConstConstructors: true
+    useConstWidgets: true
+    avoidRebuildingExpensiveWidgets: true
+    useSelectorsWithRiverpod: true
+    useBuilderWidgets: true
+
+  accessibility:
+    semanticsLabels: true
+    excludeSemantics: "when appropriate"
+    largeTextSupport: true
+    screenReaderSupport: true
+
+# ----------------------------------------------------------------------------
+# CODE QUALITY
+# ----------------------------------------------------------------------------
+codeQuality:
+  maxMethodLines: 30
+  maxClassLines: 200
+  maxFileLines: 400
+  maxMethodParameters: 4
+  maxCyclomaticComplexity: 10
+  requireDocumentation: true
+  requireTests: true
+  minimumTestCoverage: 70
+
+  principles:
+    - "Composition over inheritance"
+    - "Single responsibility for widgets"
+    - "Keep build methods small"
+    - "Use const constructors"
+    - "Prefer immutable state"
+    - "Separate business logic from UI"
+
+  linting:
+    package: "flutter_lints"
+    customRules:
+      - "prefer_const_constructors"
+      - "prefer_const_declarations"
+      - "avoid_print"
+      - "prefer_final_locals"
+      - "sort_constructors_first"
+      - "always_declare_return_types"
+
+  analysisOptions:
+    strictMode: true
+    example: |
+      analyzer:
+        language:
+          strict-casts: true
+          strict-inference: true
+          strict-raw-types: true
+        errors:
+          missing_return: error
+          dead_code: warning
+
+# ----------------------------------------------------------------------------
+# NAMING CONVENTIONS
+# ----------------------------------------------------------------------------
+naming:
+  general:
+    class: PascalCase
+    extension: PascalCase
+    mixin: PascalCase
+    function: camelCase
+    variable: camelCase
+    constant: camelCase
+    file: snake_case.dart
+    directory: snake_case
+    privateField: _camelCase
+
+  suffixes:
+    page: "Page"
+    widget: "Widget (optional)"
+    bloc: "Bloc"
+    cubit: "Cubit"
+    event: "Event"
+    state: "State"
+    provider: "Provider"
+    repository: "Repository"
+    dataSource: "DataSource"
+    model: "Model"
+    entity: "Entity"
+    useCase: "UseCase"
+
+  testing:
+    testFile: "*_test.dart"
+    testFunction: "should verb when condition"
+    group: "feature or class name"
+
+# ----------------------------------------------------------------------------
+# TESTING
+# ----------------------------------------------------------------------------
+testing:
+  framework: "flutter_test"
+  mockingLibrary: "mocktail"
+  goldenTesting: "golden_toolkit"
+
+  types:
+    unit:
+      location: "test/unit"
+      coverage: 80
+      patterns:
+        - "Given-When-Then"
+        - "Arrange-Act-Assert"
+
+    widget:
+      location: "test/widget"
+      coverage: 70
+      patterns:
+        - "pumpWidget"
+        - "find helpers"
+        - "expect matchers"
+      example: |
+        testWidgets('should display order list', (tester) async {
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [orderProvider.overrideWith(() => mockNotifier)],
+              child: const MaterialApp(home: OrderListPage()),
+            ),
+          );
+
+          expect(find.byType(OrderCard), findsNWidgets(3));
+        });
+
+    integration:
+      location: "integration_test"
+      patterns:
+        - "Integration test driver"
+        - "Full app testing"
+
+    golden:
+      enabled: true
+      location: "test/golden"
+      example: |
+        testGoldens('OrderCard should match golden', (tester) async {
+          await tester.pumpWidgetBuilder(
+            const OrderCard(order: mockOrder),
+            surfaceSize: const Size(400, 200),
+          );
+
+          await screenMatchesGolden(tester, 'order_card');
+        });
+
+  patterns:
+    mocktail: true
+    freezed: true
+    fixtures: true
+    example: |
+      @GenerateMocks([OrderRepository])
+      void main() {
+        late MockOrderRepository mockRepository;
+        late GetOrdersUseCase useCase;
+
+        setUp(() {
+          mockRepository = MockOrderRepository();
+          useCase = GetOrdersUseCase(mockRepository);
+        });
+
+        test('should return orders when repository succeeds', () async {
+          when(() => mockRepository.getOrders())
+              .thenAnswer((_) async => [testOrder]);
+
+          final result = await useCase();
+
+          expect(result, isA<Right<Failure, List<Order>>>());
+          verify(() => mockRepository.getOrders()).called(1);
+        });
+      }
+
+# ----------------------------------------------------------------------------
+# NAVIGATION
+# ----------------------------------------------------------------------------
+navigation:
+  preferred: "go_router"
+
+  patterns:
+    declarativeRouting: true
+    deepLinking: true
+    guards: true
+    shellRoutes: true
+    example: |
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const HomePage(),
+            routes: [
+              GoRoute(
+                path: 'orders/:id',
+                builder: (context, state) => OrderDetailPage(
+                  orderId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+        ],
+        redirect: (context, state) {
+          final isLoggedIn = ref.read(authProvider).isLoggedIn;
+          if (!isLoggedIn && !state.matchedLocation.startsWith('/login')) {
+            return '/login';
+          }
+          return null;
+        },
+      );
+
+# ----------------------------------------------------------------------------
+# DEPENDENCY INJECTION
+# ----------------------------------------------------------------------------
+dependencyInjection:
+  preferred: "Riverpod"
+  alternatives:
+    - "get_it"
+    - "Injectable"
+
+  patterns:
+    providerScope: true
+    repositoryProviders: true
+    useCaseProviders: true
+    example: |
+      @riverpod
+      OrderRepository orderRepository(OrderRepositoryRef ref) {
+        return OrderRepositoryImpl(
+          remoteDataSource: ref.watch(orderRemoteDataSourceProvider),
+          localDataSource: ref.watch(orderLocalDataSourceProvider),
+        );
+      }
+
+# ----------------------------------------------------------------------------
+# NETWORKING
+# ----------------------------------------------------------------------------
+networking:
+  httpClient: "Dio"
+
+  patterns:
+    interceptors: true
+    errorHandling: true
+    caching: true
+    retries: true
+    example: |
+      @riverpod
+      Dio dio(DioRef ref) {
+        return Dio(BaseOptions(baseUrl: Environment.apiUrl))
+          ..interceptors.addAll([
+            AuthInterceptor(ref.watch(authProvider)),
+            LoggingInterceptor(),
+            RetryInterceptor(),
+          ]);
+      }
+
+  errorHandling:
+    approach: "Either<Failure, T>"
+    library: "dartz or fpdart"
+
+# ----------------------------------------------------------------------------
+# LOCAL STORAGE
+# ----------------------------------------------------------------------------
+localStorage:
+  preferences: "shared_preferences"
+  database: "drift or isar"
+  secureStorage: "flutter_secure_storage"
+  caching: "hive"
+
+  patterns:
+    repositoryPattern: true
+    cacheFirst: true
+    offlineFirst: true
+
+# ----------------------------------------------------------------------------
+# PROJECT STRUCTURE
+# ----------------------------------------------------------------------------
+projectStructure:
+  approach: "Feature-first"
+
+  example: |
+    lib/
+    ├── core/
+    │   ├── error/
+    │   ├── network/
+    │   ├── router/
+    │   └── theme/
+    ├── features/
+    │   ├── auth/
+    │   │   ├── data/
+    │   │   ├── domain/
+    │   │   └── presentation/
+    │   └── orders/
+    │       ├── data/
+    │       │   ├── datasources/
+    │       │   ├── models/
+    │       │   └── repositories/
+    │       ├── domain/
+    │       │   ├── entities/
+    │       │   ├── repositories/
+    │       │   └── usecases/
+    │       └── presentation/
+    │           ├── bloc/
+    │           ├── pages/
+    │           └── widgets/
+    └── main.dart
+
+# ----------------------------------------------------------------------------
+# CODE GENERATION
+# ----------------------------------------------------------------------------
+codeGeneration:
+  tools:
+    - name: "freezed"
+      use: "Immutable classes, unions, copyWith"
+    - name: "json_serializable"
+      use: "JSON serialization"
+    - name: "riverpod_generator"
+      use: "Provider generation"
+    - name: "auto_route"
+      use: "Type-safe routing (alternative)"
+    - name: "mockgen"
+      use: "Mock generation"
+
+  buildRunner:
+    command: "dart run build_runner build --delete-conflicting-outputs"
+    watch: "dart run build_runner watch"
+
+# ----------------------------------------------------------------------------
+# TECHNOLOGIES
+# ----------------------------------------------------------------------------
+technologies:
+  - name: dart
+    version: "3.0+"
+    specificRules:
+      useSoundNullSafety: true
+      useRecords: true
+      usePatterns: true
+      useSealedClasses: true
+      preferFinal: true
+
+  - name: flutter
+    version: "3.16+"
+    specificRules:
+      useConstConstructors: true
+      extractWidgets: true
+      useThemeExtensions: true
+      supportMultiplePlatforms: true
+
+  - name: riverpod
+    version: "2.x"
+    specificRules:
+      useCodeGeneration: true
+      useAsyncNotifiers: true
+      useSelectors: true
+      disposeProviders: true
+
+  - name: testing
+    specificRules:
+      useMocktail: true
+      useGoldenTests: true
+      testWidgets: true
+      testUseCases: true
+      minimumCoverage: 70

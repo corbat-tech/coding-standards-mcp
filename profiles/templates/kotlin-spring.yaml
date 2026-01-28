@@ -1,0 +1,417 @@
+# ============================================================================
+# CORBAT MCP - Kotlin + Spring Boot Profile
+# ============================================================================
+# Production-ready standards for Kotlin Spring Boot backend applications.
+# Leverages Kotlin's null safety, coroutines, and functional features.
+# ============================================================================
+
+name: "Kotlin Spring Boot Standards"
+description: "Production-ready standards for Kotlin Spring Boot with coroutines, null safety, and idiomatic Kotlin patterns"
+
+# ----------------------------------------------------------------------------
+# ARCHITECTURE
+# ----------------------------------------------------------------------------
+architecture:
+  type: hexagonal
+  enforceLayerDependencies: true
+  layers:
+    - name: domain
+      description: "Core business logic. Pure Kotlin with no external dependencies. Contains entities, value objects, and domain interfaces."
+      allowedDependencies: []
+      packages:
+        - "*.domain"
+        - "*.domain.model"
+        - "*.domain.event"
+        - "*.domain.exception"
+        - "*.domain.port"
+        - "*.domain.service"
+
+    - name: application
+      description: "Use cases and application services. Orchestrates domain objects. Contains commands, queries, and handlers."
+      allowedDependencies:
+        - domain
+      packages:
+        - "*.application"
+        - "*.application.usecase"
+        - "*.application.service"
+
+    - name: infrastructure
+      description: "External adapters: REST controllers, database repositories, messaging, external APIs."
+      allowedDependencies:
+        - domain
+        - application
+      packages:
+        - "*.infrastructure"
+        - "*.infrastructure.adapter"
+        - "*.infrastructure.config"
+        - "*.infrastructure.persistence"
+
+# ----------------------------------------------------------------------------
+# KOTLIN FEATURES
+# ----------------------------------------------------------------------------
+kotlinFeatures:
+  enabled: true
+
+  nullSafety:
+    enforced: true
+    avoidDoubleBang: true
+    preferSafeCall: true
+    useElvisOperator: true
+    useLetForNullable: true
+    examples:
+      - "Use ?. instead of !!"
+      - "Use ?: for default values"
+      - "Use ?.let { } for nullable transformations"
+      - "Use requireNotNull() only when null is a bug"
+
+  coroutines:
+    enabled: true
+    framework: "kotlinx-coroutines"
+    structuredConcurrency: true
+    patterns:
+      suspendFunctions: true
+      flowForStreams: true
+      asyncAwait: true
+      withContext: true
+      supervisorScope: true
+    springIntegration:
+      webFlux: true
+      r2dbc: true
+      coRouter: true
+    avoid:
+      - "runBlocking in production code"
+      - "GlobalScope"
+      - "Blocking calls in coroutines"
+    examples:
+      - |
+        suspend fun getOrder(id: OrderId): Order {
+            return withContext(Dispatchers.IO) {
+                orderRepository.findById(id)
+                    ?: throw OrderNotFoundException(id)
+            }
+        }
+
+  dataClasses:
+    useForDTOs: true
+    useForValueObjects: true
+    useForEvents: true
+    immutableByDefault: true
+    examples:
+      - "data class OrderCreatedEvent(val orderId: OrderId, val createdAt: Instant)"
+      - "data class CreateOrderRequest(val customerId: CustomerId, val items: List<OrderItem>)"
+
+  sealedClasses:
+    useForDomainStates: true
+    useForResults: true
+    useForErrors: true
+    examples:
+      - |
+        sealed class OrderStatus {
+            data object Pending : OrderStatus()
+            data class Confirmed(val confirmedAt: Instant) : OrderStatus()
+            data class Shipped(val trackingNumber: String) : OrderStatus()
+            data class Delivered(val deliveredAt: Instant) : OrderStatus()
+            data class Cancelled(val reason: String) : OrderStatus()
+        }
+
+  extensionFunctions:
+    useForUtilities: true
+    useForDSLs: true
+    avoidOveruse: true
+    examples:
+      - "fun String.toOrderId(): OrderId = OrderId(this)"
+      - "fun Order.isShippable(): Boolean = status == OrderStatus.Confirmed"
+
+  scopeFunctions:
+    let: "Nullable transformations and scope limiting"
+    run: "Object configuration and computing result"
+    with: "Grouping function calls on an object"
+    apply: "Object configuration returning the object"
+    also: "Additional actions (logging, validation)"
+    examples:
+      - "order?.let { repository.save(it) }"
+      - "Order().apply { addItem(item); setCustomer(customer) }"
+
+# ----------------------------------------------------------------------------
+# CODE QUALITY
+# ----------------------------------------------------------------------------
+codeQuality:
+  maxMethodLines: 20
+  maxClassLines: 200
+  maxFileLines: 400
+  maxMethodParameters: 4
+  maxCyclomaticComplexity: 10
+  requireDocumentation: true
+  requireTests: true
+  minimumTestCoverage: 80
+
+  principles:
+    - "Prefer val over var"
+    - "Prefer immutability"
+    - "Leverage the type system"
+    - "Use sealed classes for finite states"
+    - "Prefer expressions over statements"
+    - "Use data classes for data"
+    - "Favor composition over inheritance"
+
+  linting:
+    tools:
+      - "ktlint"
+      - "detekt"
+    detektConfig:
+      complexity:
+        maxComplexity: 10
+        maxNestingDepth: 4
+      naming:
+        enforceNamingConventions: true
+      style:
+        enforceDataClassImmutability: true
+
+# ----------------------------------------------------------------------------
+# NAMING CONVENTIONS
+# ----------------------------------------------------------------------------
+naming:
+  general:
+    class: PascalCase
+    interface: PascalCase
+    function: camelCase
+    property: camelCase
+    constant: SCREAMING_SNAKE_CASE
+    package: lowercase.dot.separated
+    file: PascalCase.kt
+
+  suffixes:
+    controller: "Controller"
+    service: "Service"
+    repository: "Repository"
+    useCase: "UseCase"
+    handler: "Handler"
+    mapper: "Mapper"
+    dto: "Request|Response|Dto"
+    exception: "Exception"
+    config: "Config|Configuration"
+
+  testing:
+    testClass: "Test"
+    integrationTest: "IT"
+    testMethod: "should verb when condition"
+    fixture: "Fixtures|TestBuilder"
+
+# ----------------------------------------------------------------------------
+# TESTING
+# ----------------------------------------------------------------------------
+testing:
+  framework: "JUnit5"
+  assertionLibrary: "Kotest assertions"
+  mockingLibrary: "MockK"
+  coroutineTesting: "kotlinx-coroutines-test"
+
+  types:
+    unit:
+      suffix: "Test"
+      location: "src/test/kotlin"
+      coverage: 80
+      parallel: true
+      annotations:
+        - "@Test"
+        - "@ParameterizedTest"
+
+    integration:
+      suffix: "IT"
+      location: "src/test/kotlin"
+      annotations:
+        - "@SpringBootTest"
+        - "@Testcontainers"
+      useTestcontainers: true
+      useWebTestClient: true
+
+    architecture:
+      tool: "ArchUnit"
+      location: "src/test/kotlin/**/architecture"
+
+  patterns:
+    kotestStyle: true
+    mockk:
+      relaxed: false
+      confirmVerified: true
+    examples:
+      - |
+        @Test
+        fun `should create order when items are valid`() = runTest {
+            // Given
+            val customerId = CustomerId.generate()
+            val items = listOf(OrderItem(productId, quantity = 2))
+            coEvery { customerRepository.findById(customerId) } returns customer
+
+            // When
+            val result = createOrderUseCase.execute(customerId, items)
+
+            // Then
+            result.shouldBeSuccess()
+            coVerify { orderRepository.save(any()) }
+        }
+
+  testcontainers:
+    enabled: true
+    containers:
+      - "PostgreSQLContainer"
+      - "KafkaContainer"
+      - "RedisContainer"
+
+# ----------------------------------------------------------------------------
+# SPRING KOTLIN FEATURES
+# ----------------------------------------------------------------------------
+springKotlin:
+  beanDsl:
+    enabled: true
+    example: |
+      fun beans() = beans {
+          bean<OrderService>()
+          bean { OrderRepository(ref()) }
+      }
+
+  routerDsl:
+    enabled: true
+    coRouter: true
+    example: |
+      fun routes(handler: OrderHandler) = coRouter {
+          "/api/orders".nest {
+              GET("/{id}", handler::getOrder)
+              POST("", handler::createOrder)
+          }
+      }
+
+  configurationProperties:
+    enabled: true
+    example: |
+      @ConfigurationProperties(prefix = "app.orders")
+      data class OrderProperties(
+          val maxItems: Int = 100,
+          val defaultCurrency: Currency = Currency.USD
+      )
+
+  constructorInjection:
+    preferred: true
+    avoid:
+      - "Field injection"
+      - "lateinit var for dependencies"
+
+# ----------------------------------------------------------------------------
+# ERROR HANDLING
+# ----------------------------------------------------------------------------
+errorHandling:
+  format: "RFC 7807 Problem Details"
+  globalHandler: "@ControllerAdvice"
+
+  resultType:
+    enabled: true
+    library: "kotlin-result or Arrow"
+    example: |
+      sealed class OrderResult {
+          data class Success(val order: Order) : OrderResult()
+          data class NotFound(val orderId: OrderId) : OrderResult()
+          data class ValidationError(val errors: List<String>) : OrderResult()
+      }
+
+  customExceptions:
+    domain:
+      - "DomainException (sealed)"
+      - "EntityNotFoundException"
+      - "BusinessRuleViolationException"
+    application:
+      - "ValidationException"
+      - "UnauthorizedException"
+
+# ----------------------------------------------------------------------------
+# OBSERVABILITY
+# ----------------------------------------------------------------------------
+observability:
+  enabled: true
+
+  logging:
+    framework: "kotlin-logging + SLF4J"
+    format: "JSON"
+    structuredLogging: true
+    correlationId: true
+    example: |
+      private val logger = KotlinLogging.logger {}
+
+      suspend fun processOrder(order: Order) {
+          logger.info { "Processing order ${order.id}" }
+          withLoggingContext("orderId" to order.id.value) {
+              // processing...
+          }
+      }
+
+  metrics:
+    framework: "Micrometer"
+    registry: "prometheus"
+
+  tracing:
+    framework: "Micrometer Tracing"
+    propagation: "W3C"
+
+# ----------------------------------------------------------------------------
+# DATABASE
+# ----------------------------------------------------------------------------
+database:
+  reactive:
+    enabled: true
+    driver: "R2DBC"
+    repository: "CoroutineCrudRepository"
+
+  blocking:
+    driver: "JDBC"
+    orm: "Spring Data JPA"
+
+  migrations:
+    tool: "Flyway"
+    location: "db/migration"
+    naming: "V{version}__{description}.sql"
+
+  patterns:
+    repository: true
+    useCoroutines: true
+    example: |
+      interface OrderRepository : CoroutineCrudRepository<OrderEntity, Long> {
+          suspend fun findByCustomerId(customerId: CustomerId): Flow<OrderEntity>
+      }
+
+# ----------------------------------------------------------------------------
+# TECHNOLOGIES
+# ----------------------------------------------------------------------------
+technologies:
+  - name: kotlin
+    version: "1.9+"
+    specificRules:
+      useDataClasses: true
+      useSealedClasses: true
+      preferValOverVar: true
+      useExtensionFunctions: true
+      useCoroutines: true
+      avoidDoubleBang: true
+      useNullSafetyFeatures: true
+
+  - name: spring-boot
+    version: "3.x"
+    specificRules:
+      useConstructorInjection: true
+      useKotlinDSLs: true
+      useCoRouter: true
+      useConfigurationProperties: true
+
+  - name: coroutines
+    version: "1.7+"
+    specificRules:
+      useStructuredConcurrency: true
+      useSuspendFunctions: true
+      useFlowForStreams: true
+      avoidGlobalScope: true
+      avoidRunBlocking: true
+
+  - name: testing
+    specificRules:
+      useKotestAssertions: true
+      useMockK: true
+      useCoroutinesTest: true
+      useTestcontainers: true

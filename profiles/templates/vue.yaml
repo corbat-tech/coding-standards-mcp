@@ -596,3 +596,486 @@ vueuse:
 #
 # e2e/                           # E2E tests
 # └── specs/
+
+# ----------------------------------------------------------------------------
+# CODE EXAMPLES
+# ----------------------------------------------------------------------------
+codeExamples:
+  compositionAPIComponent:
+    description: "Modern Vue 3 component with script setup"
+    code: |
+      <!-- components/UserCard.vue -->
+      <script setup lang="ts">
+      import { computed } from 'vue'
+      import type { User } from '@/types'
+
+      const props = defineProps<{
+        user: User
+        isActive?: boolean
+      }>()
+
+      const emit = defineEmits<{
+        (e: 'select', userId: string): void
+      }>()
+
+      const fullName = computed(() => `${props.user.firstName} ${props.user.lastName}`)
+
+      function handleClick() {
+        emit('select', props.user.id)
+      }
+      </script>
+
+      <template>
+        <article
+          class="user-card"
+          :class="{ 'user-card--active': isActive }"
+          @click="handleClick"
+        >
+          <img :src="user.avatar" :alt="`${fullName}'s avatar`" />
+          <h3>{{ fullName }}</h3>
+          <p>{{ user.email }}</p>
+        </article>
+      </template>
+
+      <style scoped>
+      .user-card {
+        @apply p-4 rounded-lg shadow cursor-pointer transition-colors;
+      }
+      .user-card--active {
+        @apply ring-2 ring-primary;
+      }
+      </style>
+
+  defineModel:
+    description: "Two-way binding with defineModel (Vue 3.4+)"
+    code: |
+      <!-- components/SearchInput.vue -->
+      <script setup lang="ts">
+      const modelValue = defineModel<string>({ required: true })
+      const isFocused = ref(false)
+
+      // Automatically handles :model-value and @update:model-value
+      </script>
+
+      <template>
+        <input
+          v-model="modelValue"
+          type="search"
+          placeholder="Search..."
+          :class="{ 'ring-2': isFocused }"
+          @focus="isFocused = true"
+          @blur="isFocused = false"
+        />
+      </template>
+
+  composable:
+    description: "Reusable composable with proper patterns"
+    code: |
+      // composables/useUser.ts
+      import { ref, readonly, watch, type Ref } from 'vue'
+      import { useUserApi } from '@/api/users'
+      import type { User } from '@/types'
+
+      export function useUser(userId: Ref<string>) {
+        const user = ref<User | null>(null)
+        const isLoading = ref(false)
+        const error = ref<Error | null>(null)
+
+        const api = useUserApi()
+
+        async function fetchUser() {
+          if (!userId.value) return
+
+          isLoading.value = true
+          error.value = null
+
+          try {
+            user.value = await api.getById(userId.value)
+          } catch (e) {
+            error.value = e as Error
+            user.value = null
+          } finally {
+            isLoading.value = false
+          }
+        }
+
+        // React to userId changes
+        watch(userId, fetchUser, { immediate: true })
+
+        return {
+          user: readonly(user),
+          isLoading: readonly(isLoading),
+          error: readonly(error),
+          refetch: fetchUser
+        }
+      }
+
+  piniaStore:
+    description: "Pinia store with Setup Store syntax"
+    code: |
+      // stores/auth.ts
+      import { defineStore } from 'pinia'
+      import { ref, computed, readonly } from 'vue'
+      import { useRouter } from 'vue-router'
+      import { authApi } from '@/api/auth'
+      import type { User, Credentials } from '@/types'
+
+      export const useAuthStore = defineStore('auth', () => {
+        const router = useRouter()
+
+        // State
+        const user = ref<User | null>(null)
+        const token = ref<string | null>(localStorage.getItem('token'))
+        const isLoading = ref(false)
+
+        // Getters
+        const isAuthenticated = computed(() => !!token.value && !!user.value)
+        const displayName = computed(() =>
+          user.value ? `${user.value.firstName} ${user.value.lastName}` : ''
+        )
+
+        // Actions
+        async function login(credentials: Credentials) {
+          isLoading.value = true
+          try {
+            const response = await authApi.login(credentials)
+            token.value = response.token
+            user.value = response.user
+            localStorage.setItem('token', response.token)
+            router.push('/dashboard')
+          } finally {
+            isLoading.value = false
+          }
+        }
+
+        function logout() {
+          token.value = null
+          user.value = null
+          localStorage.removeItem('token')
+          router.push('/login')
+        }
+
+        return {
+          // State (readonly for external access)
+          user: readonly(user),
+          token: readonly(token),
+          isLoading: readonly(isLoading),
+          // Getters
+          isAuthenticated,
+          displayName,
+          // Actions
+          login,
+          logout
+        }
+      })
+
+  genericComponent:
+    description: "Generic component for type-safe reusable lists"
+    code: |
+      <!-- components/DataList.vue -->
+      <script setup lang="ts" generic="T extends { id: string }">
+      defineProps<{
+        items: T[]
+        selected?: T | null
+      }>()
+
+      const emit = defineEmits<{
+        (e: 'select', item: T): void
+        (e: 'remove', item: T): void
+      }>()
+      </script>
+
+      <template>
+        <ul class="data-list">
+          <li
+            v-for="item in items"
+            :key="item.id"
+            :class="{ selected: selected?.id === item.id }"
+            @click="emit('select', item)"
+          >
+            <slot :item="item" />
+            <button @click.stop="emit('remove', item)">Remove</button>
+          </li>
+        </ul>
+      </template>
+
+  componentTest:
+    description: "Component test with Vue Testing Library"
+    code: |
+      // components/UserCard.spec.ts
+      import { render, screen } from '@testing-library/vue'
+      import userEvent from '@testing-library/user-event'
+      import { describe, it, expect, vi } from 'vitest'
+      import UserCard from './UserCard.vue'
+
+      describe('UserCard', () => {
+        const mockUser = {
+          id: '1',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+          avatar: '/avatar.png'
+        }
+
+        it('displays user information', () => {
+          render(UserCard, {
+            props: { user: mockUser }
+          })
+
+          expect(screen.getByText('John Doe')).toBeInTheDocument()
+          expect(screen.getByText('john@example.com')).toBeInTheDocument()
+        })
+
+        it('emits select event when clicked', async () => {
+          const user = userEvent.setup()
+          const { emitted } = render(UserCard, {
+            props: { user: mockUser }
+          })
+
+          await user.click(screen.getByRole('article'))
+
+          expect(emitted()).toHaveProperty('select')
+          expect(emitted().select[0]).toEqual(['1'])
+        })
+
+        it('applies active class when isActive is true', () => {
+          render(UserCard, {
+            props: { user: mockUser, isActive: true }
+          })
+
+          expect(screen.getByRole('article')).toHaveClass('user-card--active')
+        })
+      })
+
+  tanstackQuery:
+    description: "Data fetching with TanStack Query for Vue"
+    code: |
+      // composables/useProducts.ts
+      import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+      import { productsApi } from '@/api/products'
+      import type { Product, CreateProductDto } from '@/types'
+
+      export function useProducts() {
+        return useQuery({
+          queryKey: ['products'],
+          queryFn: productsApi.getAll,
+          staleTime: 5 * 60 * 1000
+        })
+      }
+
+      export function useProduct(id: Ref<string>) {
+        return useQuery({
+          queryKey: ['products', id],
+          queryFn: () => productsApi.getById(id.value),
+          enabled: computed(() => !!id.value)
+        })
+      }
+
+      export function useCreateProduct() {
+        const queryClient = useQueryClient()
+
+        return useMutation({
+          mutationFn: (data: CreateProductDto) => productsApi.create(data),
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] })
+          }
+        })
+      }
+
+# ----------------------------------------------------------------------------
+# ANTI-PATTERNS
+# ----------------------------------------------------------------------------
+antiPatterns:
+  optionsAPIInNewCode:
+    name: "Using Options API in New Code"
+    description: "Options API is legacy; use Composition API with script setup"
+    bad: |
+      // ❌ Options API
+      export default {
+        data() {
+          return { count: 0 }
+        },
+        methods: {
+          increment() {
+            this.count++
+          }
+        },
+        computed: {
+          doubled() {
+            return this.count * 2
+          }
+        }
+      }
+    good: |
+      // ✅ Composition API with script setup
+      <script setup lang="ts">
+      const count = ref(0)
+      const doubled = computed(() => count.value * 2)
+
+      function increment() {
+        count.value++
+      }
+      </script>
+
+  reactiveForEverything:
+    name: "Using reactive() for Everything"
+    description: "reactive() has limitations; prefer ref() for most cases"
+    bad: |
+      // ❌ reactive has issues with reassignment and destructuring
+      const state = reactive({
+        user: null,
+        isLoading: false
+      })
+
+      // This breaks reactivity!
+      state = { user: newUser, isLoading: false }
+
+      // This also loses reactivity
+      const { user } = state
+    good: |
+      // ✅ Use ref() for individual values
+      const user = ref<User | null>(null)
+      const isLoading = ref(false)
+
+      // Safe reassignment
+      user.value = newUser
+
+      // Or use computed for derived state
+      const isLoggedIn = computed(() => !!user.value)
+
+  mutatingProps:
+    name: "Mutating Props Directly"
+    description: "Props are read-only; emit events or use defineModel"
+    bad: |
+      // ❌ Mutating props directly
+      const props = defineProps<{ items: string[] }>()
+
+      function addItem(item: string) {
+        props.items.push(item) // DON'T DO THIS
+      }
+    good: |
+      // ✅ Emit event to parent
+      const props = defineProps<{ items: string[] }>()
+      const emit = defineEmits<{
+        (e: 'update:items', items: string[]): void
+      }>()
+
+      function addItem(item: string) {
+        emit('update:items', [...props.items, item])
+      }
+
+      // ✅ Or use defineModel for two-way binding
+      const items = defineModel<string[]>('items', { required: true })
+
+      function addItem(item: string) {
+        items.value = [...items.value, item]
+      }
+
+  watchEffectOverwatch:
+    name: "Using watchEffect When watch Is Better"
+    description: "watchEffect runs immediately and tracks all refs; use watch for explicit dependencies"
+    bad: |
+      // ❌ watchEffect tracks everything used inside
+      watchEffect(() => {
+        if (userId.value) {
+          fetchUser(userId.value) // Also tracks any refs inside fetchUser!
+        }
+      })
+    good: |
+      // ✅ Explicit dependencies with watch
+      watch(userId, (newId) => {
+        if (newId) {
+          fetchUser(newId)
+        }
+      }, { immediate: true })
+
+  vIfWithVFor:
+    name: "Using v-if with v-for on Same Element"
+    description: "v-if has higher priority than v-for in Vue 3, causing unexpected behavior"
+    bad: |
+      // ❌ v-if evaluated before v-for
+      <li v-for="item in items" v-if="item.isActive" :key="item.id">
+        {{ item.name }}
+      </li>
+    good: |
+      // ✅ Filter in computed
+      <script setup lang="ts">
+      const activeItems = computed(() => items.value.filter(item => item.isActive))
+      </script>
+
+      <template>
+        <li v-for="item in activeItems" :key="item.id">
+          {{ item.name }}
+        </li>
+      </template>
+
+      // ✅ Or use template wrapper
+      <template v-for="item in items" :key="item.id">
+        <li v-if="item.isActive">{{ item.name }}</li>
+      </template>
+
+  noKeyInVFor:
+    name: "Missing :key in v-for"
+    description: "Always provide a unique key for v-for items"
+    bad: |
+      // ❌ No key
+      <li v-for="item in items">{{ item.name }}</li>
+
+      // ❌ Index as key
+      <li v-for="(item, index) in items" :key="index">{{ item.name }}</li>
+    good: |
+      // ✅ Unique identifier as key
+      <li v-for="item in items" :key="item.id">{{ item.name }}</li>
+
+  storeToRefsForActions:
+    name: "Using storeToRefs for Actions"
+    description: "storeToRefs only works for state/getters, not actions"
+    bad: |
+      // ❌ login is undefined (actions aren't refs)
+      const { user, login } = storeToRefs(useAuthStore())
+    good: |
+      // ✅ Destructure actions directly
+      const authStore = useAuthStore()
+      const { user, isAuthenticated } = storeToRefs(authStore)
+      const { login, logout } = authStore
+
+  heavyComputedWithoutMemo:
+    name: "Expensive Computed Without Caching Awareness"
+    description: "Computed values are cached, but be aware of dependency tracking"
+    bad: |
+      // ❌ Computed recalculates on ANY items change
+      const expensiveResult = computed(() =>
+        items.value.map(item => heavyCalculation(item))
+      )
+    good: |
+      // ✅ Use v-memo or shallowRef for large lists
+      const items = shallowRef<Item[]>([])
+
+      // Or memoize heavy calculations
+      const memoizedCalculation = useMemoize(heavyCalculation)
+      const result = computed(() =>
+        items.value.map(item => memoizedCalculation(item))
+      )
+
+  directDomManipulation:
+    name: "Direct DOM Manipulation"
+    description: "Let Vue handle the DOM; use refs for necessary DOM access"
+    bad: |
+      // ❌ Direct DOM manipulation
+      document.querySelector('.my-element').classList.add('active')
+      document.getElementById('input').focus()
+    good: |
+      // ✅ Use template refs
+      <script setup lang="ts">
+      const inputRef = ref<HTMLInputElement | null>(null)
+      const isActive = ref(false)
+
+      function focusInput() {
+        inputRef.value?.focus()
+      }
+      </script>
+
+      <template>
+        <input ref="inputRef" />
+        <div :class="{ active: isActive }">Content</div>
+      </template>

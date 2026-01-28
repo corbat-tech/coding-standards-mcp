@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://corbat.tech/schemas/corbat-config.json",
+  "title": "Corbat MCP Configuration",
+  "description": "Configuration schema for .corbat.json files",
+  "type": "object",
+  "properties": {
+    "profile": {
+      "type": "string",
+      "description": "Profile ID to use (e.g., 'java-spring-backend', 'nodejs', 'react')"
+    },
+    "autoInject": {
+      "type": "boolean",
+      "description": "Automatically inject guardrails into context",
+      "default": true
+    },
+    "rules": {
+      "type": "object",
+      "description": "Custom rules by context",
+      "properties": {
+        "always": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rules that always apply"
+        },
+        "onNewFile": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rules when creating new files"
+        },
+        "onTest": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rules when writing tests"
+        },
+        "onRefactor": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rules when refactoring"
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "object",
+      "description": "Override profile code quality thresholds",
+      "properties": {
+        "maxMethodLines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum lines per method"
+        },
+        "maxClassLines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum lines per class"
+        },
+        "maxFileLines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum lines per file"
+        },
+        "maxMethodParameters": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum parameters per method"
+        },
+        "maxCyclomaticComplexity": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum cyclomatic complexity"
+        },
+        "minimumTestCoverage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Minimum test coverage percentage"
+        }
+      },
+      "additionalProperties": false
+    },
+    "decisions": {
+      "type": "object",
+      "description": "Pre-made technical decisions",
+      "additionalProperties": { "type": "string" }
+    },
+    "guardrails": {
+      "type": "object",
+      "description": "Custom guardrails by task type",
+      "properties": {
+        "feature": { "$ref": "#/definitions/guardrail" },
+        "bugfix": { "$ref": "#/definitions/guardrail" },
+        "refactor": { "$ref": "#/definitions/guardrail" },
+        "test": { "$ref": "#/definitions/guardrail" },
+        "documentation": { "$ref": "#/definitions/guardrail" },
+        "performance": { "$ref": "#/definitions/guardrail" },
+        "security": { "$ref": "#/definitions/guardrail" },
+        "infrastructure": { "$ref": "#/definitions/guardrail" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "guardrail": {
+      "type": "object",
+      "properties": {
+        "taskType": {
+          "type": "string",
+          "enum": ["feature", "bugfix", "refactor", "test", "documentation", "performance", "security", "infrastructure"]
+        },
+        "mandatory": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rules that MUST be followed"
+        },
+        "recommended": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rules that SHOULD be followed"
+        },
+        "avoid": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Patterns to AVOID"
+        }
+      },
+      "required": ["taskType", "mandatory", "recommended", "avoid"]
+    }
+  },
+  "additionalProperties": false
+}

@@ -7,186 +7,15 @@ import {
   ProjectConfigSchema,
   type TaskType,
 } from './types.js';
+import {
+  loadGuardrails,
+  getGuardrails as getGuardrailsFromFiles,
+  type ExtendedGuardrails,
+  formatGuardrailsAsMarkdown,
+} from './guardrails.js';
 
-/**
- * Default guardrails by task type.
- */
-const DEFAULT_GUARDRAILS: Record<TaskType, Guardrails> = {
-  feature: {
-    taskType: 'feature',
-    mandatory: [
-      'Follow TDD: write tests before implementation',
-      'Ensure 80%+ unit test coverage for new code',
-      'Apply SOLID principles',
-      'Follow project naming conventions',
-      'Document public APIs',
-      'Validate inputs at boundaries',
-    ],
-    recommended: [
-      'Keep methods under 20 lines',
-      'Keep classes under 200 lines',
-      'Use dependency injection',
-      'Apply single responsibility principle',
-      'Write integration tests for critical paths',
-    ],
-    avoid: [
-      'God classes or methods',
-      'Hard-coded configuration',
-      'Mixing business logic with infrastructure',
-      'Circular dependencies',
-      'Over-engineering for hypothetical futures',
-    ],
-  },
-  bugfix: {
-    taskType: 'bugfix',
-    mandatory: [
-      'First write a failing test that reproduces the bug',
-      'Make the minimum change necessary to fix',
-      'Verify fix does not break existing tests',
-      'Document root cause in commit message',
-    ],
-    recommended: [
-      'Add regression test if not already covered',
-      'Consider if bug exists elsewhere (same pattern)',
-      'Update documentation if behavior changed',
-    ],
-    avoid: [
-      'Refactoring unrelated code',
-      'Adding features while fixing bugs',
-      'Changing APIs without necessity',
-      'Fixing symptoms instead of root cause',
-    ],
-  },
-  refactor: {
-    taskType: 'refactor',
-    mandatory: [
-      'All existing tests must pass before AND after',
-      'No behavior changes (only structure)',
-      'Commit in small, reviewable increments',
-      'Extract one concept at a time',
-    ],
-    recommended: [
-      'Increase test coverage if below threshold',
-      'Apply design patterns where appropriate',
-      'Improve naming and readability',
-      'Remove dead code',
-    ],
-    avoid: [
-      'Changing behavior during refactor',
-      'Big bang refactoring',
-      'Refactoring without tests',
-      'Premature abstraction',
-    ],
-  },
-  test: {
-    taskType: 'test',
-    mandatory: [
-      'Follow Arrange-Act-Assert pattern',
-      'One logical assertion per test',
-      'Test names describe behavior (should_X_when_Y)',
-      'Tests must be independent and repeatable',
-    ],
-    recommended: [
-      'Use test fixtures for complex setup',
-      'Mock external dependencies',
-      'Test edge cases and error conditions',
-      'Use parameterized tests for variations',
-    ],
-    avoid: [
-      'Testing implementation details',
-      'Flaky tests',
-      'Tests that depend on order',
-      'Assertions without clear purpose',
-    ],
-  },
-  documentation: {
-    taskType: 'documentation',
-    mandatory: [
-      'Use clear, concise language',
-      'Include code examples where applicable',
-      'Keep documentation close to code',
-      'Document the WHY, not just the WHAT',
-    ],
-    recommended: [
-      'Use consistent formatting',
-      'Include diagrams for complex flows',
-      'Document assumptions and constraints',
-      'Keep README updated',
-    ],
-    avoid: [
-      'Outdated documentation',
-      'Duplicating code in comments',
-      'Over-documenting obvious code',
-      'Documentation without context',
-    ],
-  },
-  performance: {
-    taskType: 'performance',
-    mandatory: [
-      'Measure before optimizing (baseline metrics)',
-      'Profile to identify actual bottlenecks',
-      'Document performance requirements',
-      'Add performance tests/benchmarks',
-    ],
-    recommended: [
-      'Consider caching strategies',
-      'Optimize database queries',
-      'Use async/non-blocking where appropriate',
-      'Consider lazy loading',
-    ],
-    avoid: [
-      'Premature optimization',
-      'Optimizing without measurements',
-      'Sacrificing readability without significant gain',
-      'Micro-optimizations in non-critical paths',
-    ],
-  },
-  security: {
-    taskType: 'security',
-    mandatory: [
-      'Validate ALL user inputs',
-      'Use parameterized queries (prevent SQL injection)',
-      'Escape output (prevent XSS)',
-      'Apply principle of least privilege',
-      'Never log sensitive data',
-    ],
-    recommended: [
-      'Use established security libraries',
-      'Implement rate limiting',
-      'Add security headers',
-      'Use HTTPS everywhere',
-      'Implement proper authentication/authorization',
-    ],
-    avoid: [
-      'Rolling your own crypto',
-      'Hardcoded secrets',
-      'Trusting client-side validation alone',
-      'Exposing stack traces to users',
-      'Using deprecated crypto algorithms',
-    ],
-  },
-  infrastructure: {
-    taskType: 'infrastructure',
-    mandatory: [
-      'Infrastructure as Code (no manual changes)',
-      'Version control all configurations',
-      'Test in staging before production',
-      'Document deployment procedures',
-    ],
-    recommended: [
-      'Use immutable infrastructure',
-      'Implement health checks',
-      'Set up proper monitoring/alerting',
-      'Plan for rollback',
-    ],
-    avoid: [
-      'Manual server configuration',
-      'Snowflake servers',
-      'Deploying directly to production',
-      'Ignoring resource limits',
-    ],
-  },
-};
+// Re-export guardrails utilities for external use
+export { loadGuardrails, formatGuardrailsAsMarkdown, type ExtendedGuardrails };
 
 /**
  * Stack detection patterns.
@@ -202,7 +31,7 @@ interface StackPattern {
 }
 
 const STACK_PATTERNS: StackPattern[] = [
-  // Java Spring
+  // Java Spring (check for Spring-specific files)
   {
     files: ['pom.xml', 'build.gradle', 'build.gradle.kts'],
     language: 'Java',
@@ -210,6 +39,64 @@ const STACK_PATTERNS: StackPattern[] = [
     buildTool: 'Maven/Gradle',
     testFramework: 'JUnit5',
     profile: 'java-spring-backend',
+    confidence: 'high',
+  },
+  // Kotlin Spring (check for Kotlin + Spring)
+  {
+    files: ['build.gradle.kts', 'settings.gradle.kts'],
+    language: 'Kotlin',
+    framework: 'Spring Boot',
+    buildTool: 'Gradle',
+    testFramework: 'JUnit5/Kotest',
+    profile: 'kotlin-spring',
+    confidence: 'medium',
+  },
+  // Go
+  {
+    files: ['go.mod', 'go.sum'],
+    language: 'Go',
+    buildTool: 'go',
+    testFramework: 'testing',
+    profile: 'go',
+    confidence: 'high',
+  },
+  // Rust
+  {
+    files: ['Cargo.toml', 'Cargo.lock'],
+    language: 'Rust',
+    buildTool: 'cargo',
+    testFramework: 'built-in',
+    profile: 'rust',
+    confidence: 'high',
+  },
+  // C# / .NET
+  {
+    files: ['*.csproj', '*.sln'],
+    language: 'C#',
+    framework: 'ASP.NET Core',
+    buildTool: 'dotnet',
+    testFramework: 'xUnit',
+    profile: 'csharp-dotnet',
+    confidence: 'high',
+  },
+  // Flutter / Dart
+  {
+    files: ['pubspec.yaml', 'pubspec.lock'],
+    language: 'Dart',
+    framework: 'Flutter',
+    buildTool: 'flutter',
+    testFramework: 'flutter_test',
+    profile: 'flutter',
+    confidence: 'high',
+  },
+  // Next.js (must come before generic React)
+  {
+    files: ['next.config.js', 'next.config.mjs', 'next.config.ts'],
+    language: 'TypeScript',
+    framework: 'Next.js',
+    buildTool: 'npm/pnpm',
+    testFramework: 'Vitest/Jest',
+    profile: 'nextjs',
     confidence: 'high',
   },
   // Angular (must come before generic Node.js)
@@ -221,6 +108,26 @@ const STACK_PATTERNS: StackPattern[] = [
     testFramework: 'Jest/Vitest',
     profile: 'angular',
     confidence: 'high',
+  },
+  // Vue.js
+  {
+    files: ['vue.config.js', 'vite.config.ts', 'nuxt.config.ts'],
+    language: 'TypeScript',
+    framework: 'Vue',
+    buildTool: 'Vite',
+    testFramework: 'Vitest',
+    profile: 'vue',
+    confidence: 'medium',
+  },
+  // React (Vite)
+  {
+    files: ['package.json', 'vite.config.ts', 'vite.config.js'],
+    language: 'TypeScript',
+    framework: 'React',
+    buildTool: 'Vite',
+    testFramework: 'Vitest',
+    profile: 'react',
+    confidence: 'medium',
   },
   // Node.js/TypeScript
   {
@@ -241,16 +148,6 @@ const STACK_PATTERNS: StackPattern[] = [
     testFramework: 'pytest',
     profile: 'python',
     confidence: 'high',
-  },
-  // React (Vite)
-  {
-    files: ['package.json', 'vite.config.ts', 'vite.config.js'],
-    language: 'TypeScript',
-    framework: 'React',
-    buildTool: 'Vite',
-    testFramework: 'Vitest',
-    profile: 'react',
-    confidence: 'medium',
   },
   // Generic JavaScript
   {
@@ -362,10 +259,22 @@ export async function detectProjectStack(projectDir: string): Promise<DetectedSt
 
 /**
  * Get guardrails for a specific task type.
+ * Loads from YAML files and merges with project-specific overrides.
  */
-export function getGuardrails(taskType: TaskType, projectConfig?: ProjectConfig | null): Guardrails {
-  // Start with defaults
-  const guardrails = { ...DEFAULT_GUARDRAILS[taskType] };
+export async function getGuardrails(
+  taskType: TaskType,
+  projectConfig?: ProjectConfig | null
+): Promise<ExtendedGuardrails> {
+  // Load from YAML files
+  const baseGuardrails = await getGuardrailsFromFiles(taskType);
+
+  // Create a copy to avoid mutating the cached version
+  const guardrails: ExtendedGuardrails = {
+    ...baseGuardrails,
+    mandatory: [...baseGuardrails.mandatory],
+    recommended: [...baseGuardrails.recommended],
+    avoid: [...baseGuardrails.avoid],
+  };
 
   // Override with project-specific guardrails if available
   if (projectConfig?.guardrails?.[taskType]) {
@@ -682,32 +591,4 @@ export function getTechnicalDecision(
   };
 }
 
-/**
- * Format guardrails as markdown.
- */
-export function formatGuardrailsAsMarkdown(guardrails: Guardrails): string {
-  const lines: string[] = [
-    `# Guardrails for ${guardrails.taskType.toUpperCase()} task`,
-    '',
-    '## MANDATORY (must follow)',
-    '',
-  ];
-
-  for (const rule of guardrails.mandatory) {
-    lines.push(`- ✅ ${rule}`);
-  }
-
-  lines.push('', '## RECOMMENDED (should follow)', '');
-
-  for (const rule of guardrails.recommended) {
-    lines.push(`- 💡 ${rule}`);
-  }
-
-  lines.push('', '## AVOID (do not do)', '');
-
-  for (const rule of guardrails.avoid) {
-    lines.push(`- ❌ ${rule}`);
-  }
-
-  return lines.join('\n');
-}
+// formatGuardrailsAsMarkdown is now exported from guardrails.ts

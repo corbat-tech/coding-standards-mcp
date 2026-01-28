@@ -2,12 +2,17 @@ import { z } from 'zod';
 
 /**
  * Architecture layer schema.
+ * Supports various naming conventions across different languages/frameworks.
  */
 export const LayerSchema = z.object({
   name: z.string(),
   description: z.string(),
   allowedDependencies: z.array(z.string()).default([]),
   packages: z.array(z.string()).optional(),
+  modules: z.array(z.string()).optional(), // Rust, Go
+  directories: z.array(z.string()).optional(), // Flutter, general
+  namespaces: z.array(z.string()).optional(), // C#
+  projects: z.array(z.string()).optional(), // C# solution projects
 });
 
 /**
@@ -22,14 +27,23 @@ export const ArchUnitSchema = z.object({
 /**
  * Architecture configuration schema.
  */
-export const ArchitectureSchema = z.object({
-  type: z
-    .enum(['hexagonal', 'clean', 'onion', 'layered', 'microservices', 'modular-monolith', 'feature-based'])
-    .default('hexagonal'),
-  enforceLayerDependencies: z.boolean().default(true),
-  layers: z.array(LayerSchema).optional(),
-  archUnit: ArchUnitSchema.optional(),
-});
+export const ArchitectureSchema = z
+  .object({
+    type: z
+      .enum(['hexagonal', 'clean', 'onion', 'layered', 'microservices', 'modular-monolith', 'feature-based'])
+      .default('hexagonal'),
+    enforceLayerDependencies: z.boolean().default(true),
+    layers: z.array(LayerSchema).optional(),
+    archUnit: ArchUnitSchema.optional(),
+    architectureTests: z
+      .object({
+        tool: z.string().optional(),
+        enabled: z.boolean().optional(),
+        rules: z.array(z.string()).optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
 
 /**
  * DDD patterns schema.
@@ -128,17 +142,19 @@ export const EventDrivenSchema = z.object({
 /**
  * Code quality rules schema.
  */
-export const CodeQualitySchema = z.object({
-  maxMethodLines: z.number().default(20),
-  maxClassLines: z.number().default(200),
-  maxFileLines: z.number().default(400),
-  maxMethodParameters: z.number().default(4),
-  maxCyclomaticComplexity: z.number().default(10),
-  requireDocumentation: z.boolean().default(true),
-  requireTests: z.boolean().default(true),
-  minimumTestCoverage: z.number().min(0).max(100).default(80),
-  principles: z.array(z.string()).optional(),
-});
+export const CodeQualitySchema = z
+  .object({
+    maxMethodLines: z.number().default(20),
+    maxClassLines: z.number().default(200),
+    maxFileLines: z.number().default(400),
+    maxMethodParameters: z.number().default(4),
+    maxCyclomaticComplexity: z.number().default(10),
+    requireDocumentation: z.boolean().default(true),
+    requireTests: z.boolean().default(true),
+    minimumTestCoverage: z.number().min(0).max(100).default(80),
+    principles: z.array(z.string()).optional(),
+  })
+  .passthrough();
 
 /**
  * Naming conventions schema - supports nested structure.
@@ -154,11 +170,15 @@ export const NamingSchema = z
 
 /**
  * Testing configuration schema.
+ * Supports various testing frameworks and patterns across languages.
  */
 export const TestingConfigSchema = z.object({
   framework: z.string().default('JUnit5'),
   assertionLibrary: z.string().default('AssertJ'),
   mockingLibrary: z.string().default('Mockito'),
+  propertyTesting: z.string().optional(), // Rust: proptest, etc.
+  goldenTesting: z.string().optional(), // Flutter: golden_toolkit
+  coroutineTesting: z.string().optional(), // Kotlin: kotlinx-coroutines-test
   types: z
     .object({
       unit: z
@@ -168,6 +188,9 @@ export const TestingConfigSchema = z.object({
           coverage: z.number().optional(),
           fastExecution: z.boolean().optional(),
           mavenPhase: z.string().optional(),
+          patterns: z.array(z.string()).optional(),
+          parallel: z.boolean().optional(),
+          annotations: z.array(z.string()).optional(),
         })
         .optional(),
       integration: z
@@ -177,12 +200,18 @@ export const TestingConfigSchema = z.object({
           mavenPlugin: z.string().optional(),
           mavenPhase: z.string().optional(),
           useTestcontainers: z.boolean().optional(),
+          useWebTestClient: z.boolean().optional(),
+          useWebApplicationFactory: z.boolean().optional(),
+          useRespawn: z.boolean().optional(),
+          annotations: z.array(z.string()).optional(),
+          patterns: z.array(z.string()).optional(),
         })
         .optional(),
       e2e: z
         .object({
           suffix: z.string().optional(),
           location: z.string().optional(),
+          framework: z.string().optional(),
         })
         .optional(),
       architecture: z
@@ -192,16 +221,38 @@ export const TestingConfigSchema = z.object({
           location: z.string().optional(),
         })
         .optional(),
+      widget: z
+        .object({
+          location: z.string().optional(),
+          coverage: z.number().optional(),
+          patterns: z.array(z.string()).optional(),
+          example: z.string().optional(),
+        })
+        .optional(),
+      golden: z
+        .object({
+          enabled: z.boolean().optional(),
+          location: z.string().optional(),
+          example: z.string().optional(),
+        })
+        .optional(),
+      documentation: z
+        .object({
+          enabled: z.boolean().optional(),
+          runWithTests: z.boolean().optional(),
+          example: z.string().optional(),
+        })
+        .optional(),
     })
     .optional(),
-  patterns: z.record(z.string(), z.boolean()).optional(),
+  patterns: z.record(z.string(), z.unknown()).optional(),
   testcontainers: z
     .object({
       enabled: z.boolean().default(true),
       containers: z.array(z.string()).optional(),
     })
     .optional(),
-});
+}).passthrough();
 
 /**
  * HTTP Clients configuration schema.
@@ -228,51 +279,67 @@ export const HttpClientsSchema = z.object({
 /**
  * Observability configuration schema.
  */
-export const ObservabilitySchema = z.object({
-  enabled: z.boolean().default(true),
-  logging: z
-    .object({
-      framework: z.string().optional(),
-      format: z.string().optional(),
-      structuredLogging: z.boolean().optional(),
-      correlationId: z.boolean().optional(),
-      mdc: z.array(z.string()).optional(),
-      levels: z.record(z.string(), z.string()).optional(),
-      avoid: z.array(z.string()).optional(),
-    })
-    .optional(),
-  metrics: z
-    .object({
-      framework: z.string().optional(),
-      registry: z.string().optional(),
-      customMetrics: z
-        .array(
-          z.object({
-            type: z.string(),
-            examples: z.array(z.string()).optional(),
-          })
-        )
-        .optional(),
-      naming: z.string().optional(),
-    })
-    .optional(),
-  tracing: z
-    .object({
-      framework: z.string().optional(),
-      propagation: z.string().optional(),
-      samplingRate: z.number().optional(),
-      exporters: z.array(z.string()).optional(),
-      spanAttributes: z.array(z.string()).optional(),
-    })
-    .optional(),
-  healthChecks: z
-    .object({
-      actuatorEndpoints: z.array(z.string()).optional(),
-      customHealthIndicators: z.boolean().optional(),
-      examples: z.array(z.string()).optional(),
-    })
-    .optional(),
-});
+export const ObservabilitySchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    logging: z
+      .object({
+        framework: z.string().optional(),
+        format: z.string().optional(),
+        structuredLogging: z.boolean().optional(),
+        correlationId: z.boolean().optional(),
+        mdc: z.array(z.string()).optional(),
+        levels: z.record(z.string(), z.string()).optional(),
+        avoid: z.array(z.string()).optional(),
+        subscribers: z.array(z.string()).optional(),
+        spans: z.boolean().optional(),
+        example: z.string().optional(),
+        enrichers: z.array(z.string()).optional(),
+        sinks: z.array(z.string()).optional(),
+      })
+      .passthrough()
+      .optional(),
+    metrics: z
+      .object({
+        framework: z.string().optional(),
+        registry: z.string().optional(),
+        customMetrics: z
+          .array(
+            z.object({
+              type: z.string(),
+              examples: z.array(z.string()).optional(),
+            })
+          )
+          .optional(),
+        naming: z.string().optional(),
+        types: z.array(z.string()).optional(),
+        exporters: z.array(z.string()).optional(),
+      })
+      .passthrough()
+      .optional(),
+    tracing: z
+      .object({
+        framework: z.string().optional(),
+        propagation: z.string().optional(),
+        samplingRate: z.number().optional(),
+        exporters: z.array(z.string()).optional(),
+        spanAttributes: z.array(z.string()).optional(),
+      })
+      .passthrough()
+      .optional(),
+    healthChecks: z
+      .object({
+        actuatorEndpoints: z.array(z.string()).optional(),
+        customHealthIndicators: z.boolean().optional(),
+        examples: z.array(z.string()).optional(),
+        endpoints: z.array(z.string()).optional(),
+        library: z.string().optional(),
+        checks: z.array(z.string()).optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
 
 /**
  * API Documentation configuration schema.
@@ -308,48 +375,26 @@ export const SecuritySchema = z.object({
 /**
  * Error handling configuration schema.
  */
-export const ErrorHandlingSchema = z.object({
-  format: z.string().default('RFC 7807 Problem Details'),
-  globalHandler: z.string().optional(),
-  structure: z.array(z.string()).optional(),
-  customExceptions: z
-    .object({
-      domain: z.array(z.string()).optional(),
-      application: z.array(z.string()).optional(),
-    })
-    .optional(),
-});
+export const ErrorHandlingSchema = z
+  .object({
+    format: z.string().default('RFC 7807 Problem Details'),
+    globalHandler: z.string().optional(),
+    structure: z.array(z.string()).optional(),
+    customExceptions: z
+      .object({
+        domain: z.array(z.string()).optional(),
+        application: z.array(z.string()).optional(),
+        infrastructure: z.array(z.string()).optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
 
 /**
  * Database configuration schema.
+ * Uses passthrough to support various database configurations across languages.
  */
-export const DatabaseSchema = z.object({
-  migrations: z
-    .object({
-      tool: z.string().default('Flyway'),
-      location: z.string().optional(),
-      naming: z.string().optional(),
-    })
-    .optional(),
-  auditing: z
-    .object({
-      enabled: z.boolean().default(true),
-      fields: z.array(z.string()).optional(),
-    })
-    .optional(),
-  mapping: z
-    .object({
-      tool: z.string().optional(),
-      nullHandling: z.string().optional(),
-    })
-    .optional(),
-  softDelete: z
-    .object({
-      recommended: z.boolean().optional(),
-      field: z.string().optional(),
-    })
-    .optional(),
-});
+export const DatabaseSchema = z.record(z.string(), z.unknown());
 
 /**
  * Object mapping configuration schema.
@@ -374,26 +419,31 @@ export const TechnologySchema = z.object({
 
 /**
  * Complete profile schema.
+ * Uses passthrough() to allow language-specific fields not explicitly defined.
+ * Supports inheritance via the 'extends' field.
  */
-export const ProfileSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  architecture: ArchitectureSchema.optional(),
-  ddd: DddSchema.optional(),
-  cqrs: CqrsSchema.optional(),
-  eventDriven: EventDrivenSchema.optional(),
-  codeQuality: CodeQualitySchema.optional(),
-  naming: NamingSchema,
-  testing: TestingConfigSchema.optional(),
-  httpClients: HttpClientsSchema.optional(),
-  observability: ObservabilitySchema.optional(),
-  apiDocumentation: ApiDocumentationSchema.optional(),
-  security: SecuritySchema.optional(),
-  errorHandling: ErrorHandlingSchema.optional(),
-  database: DatabaseSchema.optional(),
-  mapping: MappingSchema.optional(),
-  technologies: z.array(TechnologySchema).optional(),
-});
+export const ProfileSchema = z
+  .object({
+    name: z.string(),
+    description: z.string().optional(),
+    extends: z.string().optional(), // Profile inheritance - ID of parent profile
+    architecture: ArchitectureSchema.optional(),
+    ddd: DddSchema.optional(),
+    cqrs: CqrsSchema.optional(),
+    eventDriven: EventDrivenSchema.optional(),
+    codeQuality: CodeQualitySchema.optional(),
+    naming: NamingSchema,
+    testing: TestingConfigSchema.optional(),
+    httpClients: HttpClientsSchema.optional(),
+    observability: ObservabilitySchema.optional(),
+    apiDocumentation: ApiDocumentationSchema.optional(),
+    security: SecuritySchema.optional(),
+    errorHandling: ErrorHandlingSchema.optional(),
+    database: DatabaseSchema.optional(),
+    mapping: MappingSchema.optional(),
+    technologies: z.array(TechnologySchema).optional(),
+  })
+  .passthrough();
 
 export type Layer = z.infer<typeof LayerSchema>;
 export type ArchUnit = z.infer<typeof ArchUnitSchema>;

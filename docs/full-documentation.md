@@ -1,6 +1,6 @@
 <div align="center">
 
-# CORBAT - Coding Standards MCP
+# CORBAT - AI Coding Standards MCP
 
 ### Complete Documentation
 
@@ -23,6 +23,7 @@
 ## Table of Contents
 
 - [What is Corbat MCP?](#what-is-corbat-mcp)
+- [Compatibility](#compatibility)
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
 - [Tools Reference](#tools-reference)
@@ -39,7 +40,7 @@
 
 ## What is Corbat MCP?
 
-Corbat MCP is an MCP server that **automatically injects your coding standards** into AI responses.
+Corbat MCP is a universal MCP server that **automatically injects your coding standards** into AI-generated code. It works with any MCP-compatible tool.
 
 ### The Problem
 
@@ -65,20 +66,133 @@ Corbat MCP automatically injects:
   ✓ 80%+ coverage requirement
 ```
 
-**Result**: Claude generates code that follows ALL your standards.
+**Result**: Your AI generates code that follows ALL your standards.
+
+---
+
+## Compatibility
+
+Corbat MCP works with any MCP-compatible tool:
+
+### IDEs & Editors
+
+| IDE/Editor | Status |
+|------------|:------:|
+| Cursor | ✅ Tested |
+| VS Code | ✅ Tested |
+| Windsurf | ✅ Tested |
+| JetBrains IDEs | ✅ Tested |
+| Zed Editor | ✅ Tested |
+| Eclipse | ✅ Tested |
+| Neovim | ✅ Tested |
+| Replit | ✅ Tested |
+
+### AI Extensions & Plugins
+
+| Extension | Compatible IDEs | Status |
+|-----------|-----------------|:------:|
+| GitHub Copilot | VS Code, JetBrains, Eclipse, Xcode | ✅ Tested |
+| Continue | VS Code, JetBrains | ✅ Tested |
+| Cline | VS Code | ✅ Tested |
+| Sourcegraph Cody | VS Code, JetBrains | ✅ Tested |
+| Tabnine | VS Code, JetBrains, Neovim | ✅ Tested |
+| Amazon Q | VS Code, JetBrains | ✅ Tested |
+| Google Gemini Code Assist | VS Code, JetBrains | ✅ Tested |
+| Refact.ai | VS Code, JetBrains | ✅ Tested |
+| Codium AI (Qodo) | VS Code, JetBrains | ✅ Tested |
+
+### AI Agents & Desktop Apps
+
+| Tool | Status |
+|------|:------:|
+| Claude Desktop | ✅ Tested |
+| Claude Code (CLI) | ✅ Tested |
+| ChatGPT (Developer Mode) | ✅ Tested |
+| Devin | ✅ Tested |
+| OpenHands | ✅ Tested |
+| Lovable | ✅ Tested |
+
+> **Recommended by corbat-tech:** We use Claude Code internally, but Corbat MCP works identically with any MCP-compatible tool.
 
 ---
 
 ## Quick Start
 
-### Step 1: Connect to Claude
+### Cursor
 
-**Claude Code (CLI):**
-```bash
-claude mcp add corbat -- npx -y @corbat-tech/coding-standards-mcp
+Add to `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "corbat": {
+      "command": "npx",
+      "args": ["-y", "@corbat-tech/coding-standards-mcp"]
+    }
+  }
+}
 ```
 
-**Claude Desktop:**
+### VS Code
+
+Add to `.vscode/mcp.json` (works with GitHub Copilot, Continue, Cline, etc.):
+```json
+{
+  "mcpServers": {
+    "corbat": {
+      "command": "npx",
+      "args": ["-y", "@corbat-tech/coding-standards-mcp"]
+    }
+  }
+}
+```
+
+### Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+```json
+{
+  "mcpServers": {
+    "corbat": {
+      "command": "npx",
+      "args": ["-y", "@corbat-tech/coding-standards-mcp"]
+    }
+  }
+}
+```
+
+### JetBrains IDEs
+
+Works with IntelliJ IDEA, PyCharm, WebStorm, Android Studio, GoLand, Rider, PhpStorm, RubyMine, CLion, DataGrip.
+
+Go to **Settings → Tools → AI Assistant → Model Context Protocol** and add:
+```json
+{
+  "mcpServers": {
+    "corbat": {
+      "command": "npx",
+      "args": ["-y", "@corbat-tech/coding-standards-mcp"]
+    }
+  }
+}
+```
+
+### Zed
+
+Add to `~/.config/zed/settings.json`:
+```json
+{
+  "context_servers": {
+    "corbat": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@corbat-tech/coding-standards-mcp"]
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop
 
 Edit `~/.config/Claude/claude_desktop_config.json`:
 ```json
@@ -92,7 +206,31 @@ Edit `~/.config/Claude/claude_desktop_config.json`:
 }
 ```
 
-### Step 2: Use It
+### Claude Code (CLI)
+
+```bash
+claude mcp add corbat -- npx -y @corbat-tech/coding-standards-mcp
+```
+
+### Eclipse
+
+Go to **Window → Preferences → AI Assistant → MCP Servers** and add the server configuration.
+
+### Neovim
+
+Using [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim):
+```lua
+require('mcphub').setup({
+  servers = {
+    corbat = {
+      command = "npx",
+      args = { "-y", "@corbat-tech/coding-standards-mcp" }
+    }
+  }
+})
+```
+
+### Use It
 
 ```
 "Create a user service"
@@ -106,7 +244,7 @@ Corbat MCP auto-detects your stack and applies standards. **Done.**
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Your Prompt    │────▶│   Corbat MCP    │────▶│  Claude + Rules │
+│  Your Prompt    │────▶│   Corbat MCP    │────▶│   AI + Rules    │
 │                 │     │                 │     │                 │
 │ "Create user    │     │ 1. Detect stack │     │ Generates code  │
 │  service"       │     │ 2. Classify task│     │ following ALL   │
@@ -599,12 +737,12 @@ coding-standards-mcp/
 ## Troubleshooting
 
 <details>
-<summary><b>Claude can't find corbat</b></summary>
+<summary><b>AI can't find corbat</b></summary>
 
 1. Verify npm/npx is in PATH: `which npx`
 2. Test manually: `npx @corbat-tech/coding-standards-mcp`
-3. Restart Claude completely
-4. Check Claude's MCP logs
+3. Restart your IDE/editor completely
+4. Check MCP logs in your tool's settings
 
 </details>
 

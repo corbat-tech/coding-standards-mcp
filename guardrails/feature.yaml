@@ -1,0 +1,84 @@
+# ============================================================================
+# CORBAT MCP - Feature Development Guardrails
+# ============================================================================
+# Rules and guidelines for implementing new features.
+# These guardrails help AI assistants produce high-quality, maintainable code.
+# ============================================================================
+
+taskType: feature
+
+mandatory:
+  - "Follow TDD: write tests before implementation"
+  - "Ensure 80%+ unit test coverage for new code"
+  - "Apply SOLID principles"
+  - "Follow project naming conventions"
+  - "Document public APIs"
+  - "Validate inputs at boundaries"
+  - "Use dependency injection for external dependencies"
+
+recommended:
+  - "Keep methods under 20 lines"
+  - "Keep classes under 200 lines"
+  - "Use dependency injection"
+  - "Apply single responsibility principle"
+  - "Write integration tests for critical paths"
+  - "Use meaningful variable and method names"
+  - "Prefer composition over inheritance"
+  - "Use immutable objects where possible"
+
+avoid:
+  - "God classes or methods"
+  - "Hard-coded configuration"
+  - "Mixing business logic with infrastructure"
+  - "Circular dependencies"
+  - "Over-engineering for hypothetical futures"
+  - "Primitive obsession (use Value Objects)"
+  - "Anemic domain models"
+  - "Service locator anti-pattern"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Understand Requirements"
+      description: "Read and understand the feature requirements completely"
+      actions:
+        - "Identify the business value"
+        - "Clarify any ambiguous requirements"
+        - "Identify affected components"
+
+    - name: "Design"
+      description: "Plan the implementation approach"
+      actions:
+        - "Identify which layer(s) will be affected"
+        - "Design interfaces before implementations"
+        - "Consider edge cases and error scenarios"
+
+    - name: "Write Failing Test"
+      description: "Create a test that defines the expected behavior"
+      actions:
+        - "Write a descriptive test name (should_X_when_Y)"
+        - "Use Arrange-Act-Assert pattern"
+        - "Verify the test fails for the right reason"
+
+    - name: "Implement"
+      description: "Write the minimum code to make the test pass"
+      actions:
+        - "Focus on making the test pass"
+        - "Don't add unnecessary features"
+        - "Follow project conventions"
+
+    - name: "Refactor"
+      description: "Improve the code without changing behavior"
+      actions:
+        - "Remove duplication"
+        - "Improve naming"
+        - "Extract methods if needed"
+        - "All tests must still pass"
+
+    - name: "Review"
+      description: "Self-review before submitting"
+      actions:
+        - "Check test coverage"
+        - "Verify documentation is updated"
+        - "Run all tests"
+        - "Check for code smells"

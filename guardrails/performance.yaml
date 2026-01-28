@@ -1,0 +1,207 @@
+# ============================================================================
+# CORBAT MCP - Performance Guardrails
+# ============================================================================
+# Rules and guidelines for performance optimization work.
+# Key principle: Measure first, optimize second.
+# ============================================================================
+
+taskType: performance
+
+mandatory:
+  - "Measure before optimizing (baseline metrics)"
+  - "Profile to identify actual bottlenecks"
+  - "Document performance requirements"
+  - "Add performance tests/benchmarks"
+  - "Measure after optimization to verify improvement"
+
+recommended:
+  - "Consider caching strategies"
+  - "Optimize database queries"
+  - "Use async/non-blocking where appropriate"
+  - "Consider lazy loading"
+  - "Use connection pooling"
+  - "Batch operations when possible"
+  - "Consider CDN for static assets"
+
+avoid:
+  - "Premature optimization"
+  - "Optimizing without measurements"
+  - "Sacrificing readability without significant gain"
+  - "Micro-optimizations in non-critical paths"
+  - "Caching without invalidation strategy"
+  - "N+1 query problems"
+  - "Loading unnecessary data"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Baseline"
+      description: "Establish current performance"
+      actions:
+        - "Identify metrics to measure"
+        - "Set up monitoring/profiling"
+        - "Record baseline measurements"
+        - "Define performance goals"
+
+    - name: "Profile"
+      description: "Identify bottlenecks"
+      actions:
+        - "Use profiling tools"
+        - "Identify hot spots"
+        - "Analyze resource usage"
+        - "Prioritize by impact"
+
+    - name: "Optimize"
+      description: "Implement improvements"
+      actions:
+        - "Focus on highest impact first"
+        - "Make one change at a time"
+        - "Measure after each change"
+        - "Keep code maintainable"
+
+    - name: "Verify"
+      description: "Confirm improvements"
+      actions:
+        - "Compare to baseline"
+        - "Test under realistic load"
+        - "Check for regressions"
+        - "Document results"
+
+    - name: "Monitor"
+      description: "Set up ongoing monitoring"
+      actions:
+        - "Add performance tests"
+        - "Set up alerts"
+        - "Create dashboards"
+        - "Plan for capacity"
+
+# Common optimizations
+optimizations:
+  database:
+    queries:
+      - "Add appropriate indexes"
+      - "Avoid SELECT *"
+      - "Use query caching"
+      - "Fix N+1 queries"
+      - "Use batch operations"
+
+    connections:
+      - "Use connection pooling"
+      - "Right-size pool"
+      - "Implement timeouts"
+
+  caching:
+    strategies:
+      - "Cache frequently accessed data"
+      - "Use appropriate TTL"
+      - "Implement cache invalidation"
+      - "Consider cache layers (L1/L2)"
+
+    patterns:
+      - "Cache-aside"
+      - "Read-through"
+      - "Write-through"
+      - "Write-behind"
+
+  async:
+    when:
+      - "I/O bound operations"
+      - "External API calls"
+      - "File operations"
+      - "Email sending"
+
+    patterns:
+      - "Async/await"
+      - "Message queues"
+      - "Event-driven"
+      - "Reactive streams"
+
+  memory:
+    optimize:
+      - "Reduce object allocation"
+      - "Use object pooling"
+      - "Stream large datasets"
+      - "Implement pagination"
+
+# Performance anti-patterns
+antiPatterns:
+  nPlusOne:
+    description: "N+1 query problem"
+    example: "Fetching related entities in a loop"
+    solution: "Use eager loading or batch queries"
+
+  prematureOptimization:
+    description: "Optimizing without evidence"
+    example: "Complex caching without profiling"
+    solution: "Measure first, optimize second"
+
+  synchronousEverything:
+    description: "Blocking on I/O operations"
+    example: "Waiting for HTTP response"
+    solution: "Use async/await for I/O"
+
+  loadingTooMuch:
+    description: "Fetching unnecessary data"
+    example: "SELECT * when only name needed"
+    solution: "Select only needed fields"
+
+  noConnectionPooling:
+    description: "Creating new connections each time"
+    example: "New DB connection per request"
+    solution: "Use connection pool"
+
+  chattyApi:
+    description: "Too many small API calls"
+    example: "Separate call for each field"
+    solution: "Batch requests, use GraphQL"
+
+# Metrics to track
+metrics:
+  latency:
+    - "Response time (p50, p95, p99)"
+    - "Time to first byte"
+    - "Database query time"
+
+  throughput:
+    - "Requests per second"
+    - "Transactions per second"
+    - "Messages processed per second"
+
+  resources:
+    - "CPU utilization"
+    - "Memory usage"
+    - "Disk I/O"
+    - "Network bandwidth"
+
+  errors:
+    - "Error rate"
+    - "Timeout rate"
+    - "Circuit breaker trips"
+
+# Tools by language
+tools:
+  java:
+    - "JProfiler"
+    - "VisualVM"
+    - "JMH (benchmarking)"
+    - "Async Profiler"
+
+  nodejs:
+    - "Node.js built-in profiler"
+    - "clinic.js"
+    - "0x"
+
+  python:
+    - "cProfile"
+    - "py-spy"
+    - "memory_profiler"
+
+  go:
+    - "pprof"
+    - "trace"
+    - "benchstat"
+
+  rust:
+    - "perf"
+    - "flamegraph"
+    - "criterion (benchmarking)"

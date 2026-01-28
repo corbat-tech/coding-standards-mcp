@@ -1,0 +1,140 @@
+# ============================================================================
+# CORBAT MCP - Refactoring Guardrails
+# ============================================================================
+# Rules and guidelines for safe code refactoring.
+# Key principle: Change structure without changing behavior.
+# ============================================================================
+
+taskType: refactor
+
+mandatory:
+  - "All existing tests must pass before AND after"
+  - "No behavior changes (only structure)"
+  - "Commit in small, reviewable increments"
+  - "Extract one concept at a time"
+  - "Run tests after each small change"
+
+recommended:
+  - "Increase test coverage if below threshold"
+  - "Apply design patterns where appropriate"
+  - "Improve naming and readability"
+  - "Remove dead code"
+  - "Reduce cognitive complexity"
+  - "Extract reusable components"
+  - "Improve separation of concerns"
+
+avoid:
+  - "Changing behavior during refactor"
+  - "Big bang refactoring"
+  - "Refactoring without tests"
+  - "Premature abstraction"
+  - "Adding new features while refactoring"
+  - "Refactoring code you don't understand"
+  - "Changing public APIs unnecessarily"
+
+# Workflow guidance for AI assistants
+workflow:
+  steps:
+    - name: "Assess"
+      description: "Understand the current state"
+      actions:
+        - "Read and understand the existing code"
+        - "Identify code smells and issues"
+        - "Check current test coverage"
+        - "Understand dependencies"
+
+    - name: "Plan"
+      description: "Define the refactoring strategy"
+      actions:
+        - "Identify the target state"
+        - "Break into small, safe steps"
+        - "Identify risky areas"
+        - "Plan test additions if needed"
+
+    - name: "Prepare"
+      description: "Set up for safe refactoring"
+      actions:
+        - "Ensure all tests pass"
+        - "Add tests for untested behavior"
+        - "Create a branch for the work"
+        - "Set up quick feedback loop"
+
+    - name: "Execute"
+      description: "Perform the refactoring"
+      actions:
+        - "Make one small change at a time"
+        - "Run tests after each change"
+        - "Commit frequently"
+        - "Keep changes reversible"
+
+    - name: "Verify"
+      description: "Ensure quality improved"
+      actions:
+        - "All tests pass"
+        - "Code is more readable"
+        - "Complexity is reduced"
+        - "No behavior changes"
+
+# Common refactoring patterns
+patterns:
+  extractMethod:
+    when: "Method is too long or does multiple things"
+    how: "Extract a portion into a new method with a descriptive name"
+
+  extractClass:
+    when: "Class has multiple responsibilities"
+    how: "Move related fields and methods to a new class"
+
+  renameForClarity:
+    when: "Names don't clearly express intent"
+    how: "Rename variables, methods, classes to be self-documenting"
+
+  replaceConditionalWithPolymorphism:
+    when: "Switch statements or complex conditionals"
+    how: "Use inheritance or strategy pattern"
+
+  introduceParameterObject:
+    when: "Multiple parameters that travel together"
+    how: "Create a class to group related parameters"
+
+  moveMethod:
+    when: "Method uses more features of another class"
+    how: "Move the method to the class it belongs with"
+
+  inlineMethod:
+    when: "Method body is as clear as its name"
+    how: "Replace calls with the method body"
+
+  extractInterface:
+    when: "Multiple classes share behavior or for testing"
+    how: "Create an interface for the common contract"
+
+# Code smells to address
+codeSmells:
+  longMethod:
+    description: "Methods longer than 20 lines"
+    refactoring: "Extract Method"
+
+  largeClass:
+    description: "Classes with too many responsibilities"
+    refactoring: "Extract Class"
+
+  duplicateCode:
+    description: "Same code structure in multiple places"
+    refactoring: "Extract Method or Extract Class"
+
+  primitiveObsession:
+    description: "Using primitives instead of small objects"
+    refactoring: "Replace with Value Object"
+
+  featureEnvy:
+    description: "Method uses other class's data extensively"
+    refactoring: "Move Method"
+
+  dataClumps:
+    description: "Groups of data that appear together"
+    refactoring: "Introduce Parameter Object"
+
+  switchStatements:
+    description: "Complex switch/if-else chains"
+    refactoring: "Replace with Polymorphism"

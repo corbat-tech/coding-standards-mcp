@@ -1,0 +1,67 @@
+# ============================================================================
+# CORBAT MCP - Startup Fast Profile (Example)
+# ============================================================================
+# For startups and MVPs that prioritize speed over perfection.
+# Relaxed rules while still maintaining basic quality.
+#
+# Usage:
+#   1. Copy this file to profiles/custom/startup-fast.yaml
+#   2. Or reference in .corbat.json: { "profile": "startup-fast" }
+# ============================================================================
+
+name: "Startup Fast"
+description: "Pragmatic standards for startups - ship fast while maintaining basic quality"
+extends: "nodejs"
+
+# Relaxed code quality for faster iteration
+codeQuality:
+  maxMethodLines: 30           # More lenient (default: 20)
+  maxClassLines: 300           # More lenient (default: 200)
+  maxFileLines: 500            # More lenient (default: 400)
+  maxMethodParameters: 5       # More lenient (default: 4)
+  maxCyclomaticComplexity: 15  # More lenient (default: 10)
+  minimumTestCoverage: 60      # More lenient (default: 80)
+  requireDocumentation: false  # Don't require docs on everything
+  requireTests: true           # Still require tests
+  principles:
+    - "Working code > perfect code"
+    - "Test critical paths thoroughly"
+    - "Document only complex logic"
+    - "Refactor when it hurts, not before"
+
+# Simpler testing requirements
+testing:
+  framework: "Vitest"
+  assertionLibrary: "Vitest"
+  mockingLibrary: "Vitest"
+  types:
+    unit:
+      suffix: "test"
+      coverage: 60
+      fastExecution: true
+    integration:
+      suffix: "integration.test"
+      useTestcontainers: false  # Keep it simple initially
+    e2e:
+      framework: "Playwright"
+
+# Simpler architecture - avoid over-engineering
+architecture:
+  type: "feature-based"
+  enforceLayerDependencies: false  # Allow flexibility
+
+# No strict DDD/CQRS requirements
+ddd:
+  enabled: false
+
+cqrs:
+  enabled: false
+
+# Basic security only
+security:
+  authentication:
+    method: "JWT"
+  practices:
+    - "Validate user input"
+    - "Use HTTPS in production"
+    - "Don't log sensitive data"
