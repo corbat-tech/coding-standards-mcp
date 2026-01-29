@@ -1,0 +1,8 @@
+{
+  "profile": "python",
+  "rules": {
+    "max_method_lines": 20,
+    "max_class_lines": 200,
+    "min_coverage": 80
+  }
+}

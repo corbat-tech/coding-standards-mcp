@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: notification-service
+  main:
+    banner-mode: off
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.example.notification: DEBUG

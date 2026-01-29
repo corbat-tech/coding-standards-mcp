@@ -1,0 +1,5 @@
+/Users/vmart/WORKSPACE/_CORBAT/01-Repositories/_corbat/corbat-mcp/benchmarks/v3/scenarios/05-java-saga/without-mcp/src/test/java/com/example/saga/step/ShipOrderStepTest.java
+/Users/vmart/WORKSPACE/_CORBAT/01-Repositories/_corbat/corbat-mcp/benchmarks/v3/scenarios/05-java-saga/without-mcp/src/test/java/com/example/saga/step/CreateOrderStepTest.java
+/Users/vmart/WORKSPACE/_CORBAT/01-Repositories/_corbat/corbat-mcp/benchmarks/v3/scenarios/05-java-saga/without-mcp/src/test/java/com/example/saga/step/ProcessPaymentStepTest.java
+/Users/vmart/WORKSPACE/_CORBAT/01-Repositories/_corbat/corbat-mcp/benchmarks/v3/scenarios/05-java-saga/without-mcp/src/test/java/com/example/saga/step/ReserveInventoryStepTest.java
+/Users/vmart/WORKSPACE/_CORBAT/01-Repositories/_corbat/corbat-mcp/benchmarks/v3/scenarios/05-java-saga/without-mcp/src/test/java/com/example/saga/saga/OrderFulfillmentOrchestratorTest.java

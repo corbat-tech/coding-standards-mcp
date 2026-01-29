@@ -1,0 +1,528 @@
+{
+  "generated_at": "2026-01-29T16:39:19.792718",
+  "summary": {
+    "total_scenarios": 15,
+    "mcp_wins": 5,
+    "vanilla_wins": 9,
+    "ties": 1,
+    "average_improvement": -0.9625038323158147
+  },
+  "scenarios": [
+    {
+      "id": "01-java-crud",
+      "name": "Java CRUD REST API",
+      "winner": "without-mcp",
+      "improvement_percentage": -1.9702665755297482,
+      "with_mcp": {
+        "total_files": 16,
+        "total_lines": 866,
+        "code_lines": 626,
+        "comment_lines": 77,
+        "test_files": 2,
+        "architecture_score": 90.0,
+        "best_practices_score": 100,
+        "error_handling_score": 45.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 71.70875
+      },
+      "without_mcp": {
+        "total_files": 15,
+        "total_lines": 1068,
+        "code_lines": 853,
+        "comment_lines": 0,
+        "test_files": 4,
+        "architecture_score": 87.0,
+        "best_practices_score": 100,
+        "error_handling_score": 45.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 73.15
+      },
+      "key_differences": []
+    },
+    {
+      "id": "02-java-ddd",
+      "name": "Java DDD Aggregate",
+      "winner": "with-mcp",
+      "improvement_percentage": 31.130672095026114,
+      "with_mcp": {
+        "total_files": 29,
+        "total_lines": 2251,
+        "code_lines": 1622,
+        "comment_lines": 176,
+        "test_files": 6,
+        "architecture_score": 82.5,
+        "best_practices_score": 100,
+        "error_handling_score": 25.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 75.80172413793103
+      },
+      "without_mcp": {
+        "total_files": 16,
+        "total_lines": 2009,
+        "code_lines": 1394,
+        "comment_lines": 216,
+        "test_files": 3,
+        "architecture_score": 51.0,
+        "best_practices_score": 50,
+        "error_handling_score": 25.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 57.80625
+      },
+      "key_differences": [
+        "Better architecture adherence with MCP",
+        "More best practices followed with MCP",
+        "More test files with MCP"
+      ]
+    },
+    {
+      "id": "03-java-hexagonal",
+      "name": "Java Hexagonal Architecture",
+      "winner": "without-mcp",
+      "improvement_percentage": -3.1547196303643243,
+      "with_mcp": {
+        "total_files": 27,
+        "total_lines": 2221,
+        "code_lines": 1566,
+        "comment_lines": 245,
+        "test_files": 5,
+        "architecture_score": 92.0,
+        "best_practices_score": 100,
+        "error_handling_score": 85.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 77.53888888888889
+      },
+      "without_mcp": {
+        "total_files": 34,
+        "total_lines": 3786,
+        "code_lines": 2740,
+        "comment_lines": 339,
+        "test_files": 8,
+        "architecture_score": 84.0,
+        "best_practices_score": 100,
+        "error_handling_score": 85.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 80.06470588235294
+      },
+      "key_differences": []
+    },
+    {
+      "id": "04-java-kafka",
+      "name": "Java Kafka Event-Driven",
+      "winner": "without-mcp",
+      "improvement_percentage": -2.777973723657537,
+      "with_mcp": {
+        "total_files": 22,
+        "total_lines": 1927,
+        "code_lines": 1351,
+        "comment_lines": 248,
+        "test_files": 5,
+        "architecture_score": 87.0,
+        "best_practices_score": 100,
+        "error_handling_score": 50.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 77.10454545454544
+      },
+      "without_mcp": {
+        "total_files": 26,
+        "total_lines": 2931,
+        "code_lines": 2114,
+        "comment_lines": 325,
+        "test_files": 8,
+        "architecture_score": 90.0,
+        "best_practices_score": 100,
+        "error_handling_score": 60.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 79.3076923076923
+      },
+      "key_differences": []
+    },
+    {
+      "id": "05-java-saga",
+      "name": "Java Saga Pattern",
+      "winner": "without-mcp",
+      "improvement_percentage": -100.0,
+      "with_mcp": {
+        "total_files": 0,
+        "total_lines": 0,
+        "code_lines": 0,
+        "comment_lines": 0,
+        "test_files": 0,
+        "architecture_score": 0.0,
+        "best_practices_score": 0,
+        "error_handling_score": 0.0,
+        "security_score": 0.0,
+        "documentation_score": 0.0,
+        "final_score": 0.0
+      },
+      "without_mcp": {
+        "total_files": 26,
+        "total_lines": 2387,
+        "code_lines": 1720,
+        "comment_lines": 219,
+        "test_files": 5,
+        "architecture_score": 78.0,
+        "best_practices_score": 100,
+        "error_handling_score": 50.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 71.2923076923077
+      },
+      "key_differences": []
+    },
+    {
+      "id": "06-ts-express",
+      "name": "TypeScript Express CRUD",
+      "winner": "without-mcp",
+      "improvement_percentage": -8.683674315761452,
+      "with_mcp": {
+        "total_files": 23,
+        "total_lines": 1636,
+        "code_lines": 1250,
+        "comment_lines": 89,
+        "test_files": 6,
+        "architecture_score": 66.9,
+        "best_practices_score": 100,
+        "error_handling_score": 75.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 76.58652173913043
+      },
+      "without_mcp": {
+        "total_files": 19,
+        "total_lines": 1002,
+        "code_lines": 777,
+        "comment_lines": 25,
+        "test_files": 4,
+        "architecture_score": 98.8,
+        "best_practices_score": 100,
+        "error_handling_score": 90.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 83.86947368421053
+      },
+      "key_differences": [
+        "More test files with MCP"
+      ]
+    },
+    {
+      "id": "07-ts-nestjs",
+      "name": "TypeScript NestJS Clean",
+      "winner": "without-mcp",
+      "improvement_percentage": -1.9024449754928359,
+      "with_mcp": {
+        "total_files": 27,
+        "total_lines": 1926,
+        "code_lines": 1438,
+        "comment_lines": 182,
+        "test_files": 8,
+        "architecture_score": 91.6,
+        "best_practices_score": 100,
+        "error_handling_score": 15.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 75.94222222222223
+      },
+      "without_mcp": {
+        "total_files": 36,
+        "total_lines": 1874,
+        "code_lines": 1554,
+        "comment_lines": 0,
+        "test_files": 6,
+        "architecture_score": 84.4,
+        "best_practices_score": 100,
+        "error_handling_score": 15.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 77.415
+      },
+      "key_differences": [
+        "More test files with MCP"
+      ]
+    },
+    {
+      "id": "08-ts-react",
+      "name": "React Form Component",
+      "winner": "with-mcp",
+      "improvement_percentage": 48.29315519411365,
+      "with_mcp": {
+        "total_files": 11,
+        "total_lines": 1250,
+        "code_lines": 902,
+        "comment_lines": 150,
+        "test_files": 2,
+        "architecture_score": 73.8,
+        "best_practices_score": 100,
+        "error_handling_score": 50.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 69.62363636363636
+      },
+      "without_mcp": {
+        "total_files": 4,
+        "total_lines": 592,
+        "code_lines": 480,
+        "comment_lines": 3,
+        "test_files": 2,
+        "architecture_score": 49.0,
+        "best_practices_score": 5,
+        "error_handling_score": 50.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 46.95
+      },
+      "key_differences": [
+        "Better architecture adherence with MCP",
+        "More best practices followed with MCP"
+      ]
+    },
+    {
+      "id": "09-ts-nextjs",
+      "name": "Next.js Full-Stack",
+      "winner": "with-mcp",
+      "improvement_percentage": 5.670206535583676,
+      "with_mcp": {
+        "total_files": 17,
+        "total_lines": 2489,
+        "code_lines": 1942,
+        "comment_lines": 125,
+        "test_files": 6,
+        "architecture_score": 77.2,
+        "best_practices_score": 100,
+        "error_handling_score": 75.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 75.88705882352942
+      },
+      "without_mcp": {
+        "total_files": 20,
+        "total_lines": 2484,
+        "code_lines": 1931,
+        "comment_lines": 155,
+        "test_files": 3,
+        "architecture_score": 77.2,
+        "best_practices_score": 100,
+        "error_handling_score": 60.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 71.815
+      },
+      "key_differences": [
+        "More test files with MCP",
+        "Better error handling with MCP"
+      ]
+    },
+    {
+      "id": "10-python-fastapi-crud",
+      "name": "Python FastAPI CRUD",
+      "winner": "with-mcp",
+      "improvement_percentage": 19.700421888105776,
+      "with_mcp": {
+        "total_files": 23,
+        "total_lines": 1294,
+        "code_lines": 880,
+        "comment_lines": 139,
+        "test_files": 5,
+        "architecture_score": 74.1,
+        "best_practices_score": 100,
+        "error_handling_score": 90.0,
+        "security_score": 100,
+        "documentation_score": 100.0,
+        "final_score": 83.14391304347826
+      },
+      "without_mcp": {
+        "total_files": 15,
+        "total_lines": 1070,
+        "code_lines": 670,
+        "comment_lines": 130,
+        "test_files": 4,
+        "architecture_score": 24.7,
+        "best_practices_score": 100,
+        "error_handling_score": 80.0,
+        "security_score": 100,
+        "documentation_score": 100.0,
+        "final_score": 69.46
+      },
+      "key_differences": [
+        "Better architecture adherence with MCP",
+        "More test files with MCP"
+      ]
+    },
+    {
+      "id": "11-python-fastapi-repository",
+      "name": "Python FastAPI Repository",
+      "winner": "tie",
+      "improvement_percentage": 0.0,
+      "with_mcp": {
+        "total_files": 25,
+        "total_lines": 1806,
+        "code_lines": 1222,
+        "comment_lines": 189,
+        "test_files": 7,
+        "architecture_score": 77.5,
+        "best_practices_score": 100,
+        "error_handling_score": 80.0,
+        "security_score": 100,
+        "documentation_score": 100.0,
+        "final_score": 83.0492
+      },
+      "without_mcp": {
+        "total_files": 25,
+        "total_lines": 1806,
+        "code_lines": 1222,
+        "comment_lines": 189,
+        "test_files": 7,
+        "architecture_score": 77.5,
+        "best_practices_score": 100,
+        "error_handling_score": 80.0,
+        "security_score": 100,
+        "documentation_score": 100.0,
+        "final_score": 83.0492
+      },
+      "key_differences": []
+    },
+    {
+      "id": "12-go-http",
+      "name": "Go HTTP Handlers",
+      "winner": "without-mcp",
+      "improvement_percentage": -23.111395646606912,
+      "with_mcp": {
+        "total_files": 10,
+        "total_lines": 1564,
+        "code_lines": 1298,
+        "comment_lines": 59,
+        "test_files": 5,
+        "architecture_score": 9.0,
+        "best_practices_score": 100,
+        "error_handling_score": 45.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 60.05
+      },
+      "without_mcp": {
+        "total_files": 9,
+        "total_lines": 1540,
+        "code_lines": 1277,
+        "comment_lines": 66,
+        "test_files": 3,
+        "architecture_score": 88.0,
+        "best_practices_score": 100,
+        "error_handling_score": 65.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 78.1
+      },
+      "key_differences": [
+        "More test files with MCP"
+      ]
+    },
+    {
+      "id": "13-go-clean",
+      "name": "Go Clean Architecture",
+      "winner": "without-mcp",
+      "improvement_percentage": -3.560057219325357,
+      "with_mcp": {
+        "total_files": 13,
+        "total_lines": 1688,
+        "code_lines": 1281,
+        "comment_lines": 94,
+        "test_files": 4,
+        "architecture_score": 83.5,
+        "best_practices_score": 100,
+        "error_handling_score": 65.0,
+        "security_score": 100,
+        "documentation_score": 60.0,
+        "final_score": 80.38269230769231
+      },
+      "without_mcp": {
+        "total_files": 15,
+        "total_lines": 2478,
+        "code_lines": 2012,
+        "comment_lines": 129,
+        "test_files": 5,
+        "architecture_score": 88.0,
+        "best_practices_score": 100,
+        "error_handling_score": 65.0,
+        "security_score": 100,
+        "documentation_score": 60.0,
+        "final_score": 83.35
+      },
+      "key_differences": []
+    },
+    {
+      "id": "14-rust-axum",
+      "name": "Rust Axum API",
+      "winner": "with-mcp",
+      "improvement_percentage": 34.51860193165577,
+      "with_mcp": {
+        "total_files": 11,
+        "total_lines": 599,
+        "code_lines": 445,
+        "comment_lines": 38,
+        "test_files": 1,
+        "architecture_score": 78.0,
+        "best_practices_score": 100,
+        "error_handling_score": 70.0,
+        "security_score": 100,
+        "documentation_score": 60.0,
+        "final_score": 80.67272727272727
+      },
+      "without_mcp": {
+        "total_files": 7,
+        "total_lines": 681,
+        "code_lines": 564,
+        "comment_lines": 1,
+        "test_files": 1,
+        "architecture_score": 27.0,
+        "best_practices_score": 100,
+        "error_handling_score": 80.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 59.97142857142857
+      },
+      "key_differences": [
+        "Better architecture adherence with MCP"
+      ]
+    },
+    {
+      "id": "15-kotlin-coroutines",
+      "name": "Kotlin Coroutines",
+      "winner": "without-mcp",
+      "improvement_percentage": -8.590083042484046,
+      "with_mcp": {
+        "total_files": 15,
+        "total_lines": 2105,
+        "code_lines": 1465,
+        "comment_lines": 294,
+        "test_files": 4,
+        "architecture_score": 88.0,
+        "best_practices_score": 100,
+        "error_handling_score": 60.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 79.95
+      },
+      "without_mcp": {
+        "total_files": 19,
+        "total_lines": 2568,
+        "code_lines": 1923,
+        "comment_lines": 255,
+        "test_files": 7,
+        "architecture_score": 100.0,
+        "best_practices_score": 100,
+        "error_handling_score": 60.0,
+        "security_score": 100,
+        "documentation_score": 30.0,
+        "final_score": 87.46315789473684
+      },
+      "key_differences": []
+    }
+  ]
+}

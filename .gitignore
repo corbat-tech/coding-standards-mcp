@@ -32,3 +32,6 @@ temp/
 
 # Local MCP config
 .mcp.json
+
+# Local development files
+.local/

@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: notification-service-test
+  main:
+    banner-mode: off
+
+logging:
+  level:
+    root: WARN
+    com.example.notification: DEBUG

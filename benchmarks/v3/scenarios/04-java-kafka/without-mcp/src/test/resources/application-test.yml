@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: order-processing-test
+
+  # Database Configuration - Use H2 for testing
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  # Kafka Configuration - Will be overridden by EmbeddedKafka
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+    consumer:
+      group-id: inventory-service-test
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.orderprocessing.domain.event
+    listener:
+      ack-mode: manual_immediate
+
+# Logging Configuration for tests
+logging:
+  level:
+    root: WARN
+    com.example.orderprocessing: DEBUG
+    org.apache.kafka: WARN
+    org.springframework.kafka: WARN

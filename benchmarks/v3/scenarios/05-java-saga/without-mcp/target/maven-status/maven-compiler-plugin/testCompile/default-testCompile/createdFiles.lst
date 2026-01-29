@@ -1,0 +1,16 @@
+com/example/saga/step/CreateOrderStepTest$Execute.class
+com/example/saga/saga/OrderFulfillmentOrchestratorTest$FailureScenarios.class
+com/example/saga/step/ProcessPaymentStepTest$Compensate.class
+com/example/saga/step/ShipOrderStepTest.class
+com/example/saga/step/ProcessPaymentStepTest$Execute.class
+com/example/saga/step/ProcessPaymentStepTest.class
+com/example/saga/saga/OrderFulfillmentOrchestratorTest$OrchestratorConfiguration.class
+com/example/saga/step/ReserveInventoryStepTest.class
+com/example/saga/step/CreateOrderStepTest$Compensate.class
+com/example/saga/saga/OrderFulfillmentOrchestratorTest.class
+com/example/saga/step/ReserveInventoryStepTest$Compensate.class
+com/example/saga/step/ShipOrderStepTest$Execute.class
+com/example/saga/step/ReserveInventoryStepTest$Execute.class
+com/example/saga/saga/OrderFulfillmentOrchestratorTest$HappyPath.class
+com/example/saga/step/CreateOrderStepTest.class
+com/example/saga/step/ShipOrderStepTest$Compensate.class
