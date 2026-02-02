@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
 
 /**
@@ -12,6 +14,7 @@ interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
+  correlationId?: string;
   context?: Record<string, unknown>;
 }
 
@@ -24,6 +27,42 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   warn: 2,
   error: 3,
 };
+
+/**
+ * AsyncLocalStorage for request-scoped correlation IDs.
+ */
+const correlationStore = new AsyncLocalStorage<string>();
+
+/**
+ * Execute a function with a correlation ID for tracing.
+ * All log entries within the function will include this ID.
+ */
+export function withCorrelationId<T>(fn: () => T): T {
+  return correlationStore.run(randomUUID(), fn);
+}
+
+/**
+ * Execute an async function with a correlation ID for tracing.
+ * All log entries within the function will include this ID.
+ */
+export async function withCorrelationIdAsync<T>(fn: () => Promise<T>): Promise<T> {
+  return correlationStore.run(randomUUID(), fn);
+}
+
+/**
+ * Get the current correlation ID if one exists.
+ */
+export function getCorrelationId(): string | undefined {
+  return correlationStore.getStore();
+}
+
+/**
+ * Set a specific correlation ID for the current context.
+ * Useful when receiving a correlation ID from an external request.
+ */
+export function runWithCorrelationId<T>(correlationId: string, fn: () => T): T {
+  return correlationStore.run(correlationId, fn);
+}
 
 /**
  * Check if a log level should be output based on configured level.
@@ -40,10 +79,13 @@ function shouldLog(level: LogLevel): boolean {
 function log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
   if (!shouldLog(level)) return;
 
+  const correlationId = getCorrelationId();
+
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
     message,
+    ...(correlationId ? { correlationId } : {}),
     ...(context && Object.keys(context).length > 0 ? { context } : {}),
   };
 

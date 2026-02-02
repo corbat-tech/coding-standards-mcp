@@ -83,7 +83,8 @@ describe('Tool Handlers Integration (Simplified API)', () => {
       const result = await handleToolCall('search', { query: '   ' });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Please provide');
+      expect(result.content[0].text).toContain('TOOL_INPUT_ERROR');
+      expect(result.content[0].text).toContain('empty');
     });
   });
 
@@ -109,14 +110,14 @@ describe('Tool Handlers Integration (Simplified API)', () => {
   });
 
   describe('unknown tool', () => {
-    it('should return error with available tools list', async () => {
+    it('should return structured error for unknown tool', async () => {
       const result = await handleToolCall('unknown_tool', {});
 
       expect(result.isError).toBe(true);
+      // Structured error with code, message, and details
+      expect(result.content[0].text).toContain('TOOL_INPUT_ERROR');
       expect(result.content[0].text).toContain('Unknown tool');
-      expect(result.content[0].text).toContain('get_context');
-      expect(result.content[0].text).toContain('validate');
-      expect(result.content[0].text).toContain('search');
+      expect(result.content[0].text).toContain('unknown_tool');
     });
   });
 });

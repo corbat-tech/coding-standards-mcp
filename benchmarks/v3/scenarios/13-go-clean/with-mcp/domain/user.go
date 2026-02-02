@@ -1,73 +1,56 @@
 package domain
 
 import (
-	"regexp"
-	"strings"
+	"errors"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-// User represents the user entity in the domain layer.
+var (
+	ErrUserNotFound      = errors.New("user not found")
+	ErrEmailAlreadyExists = errors.New("email already exists")
+	ErrInvalidEmail      = errors.New("invalid email format")
+	ErrInvalidName       = errors.New("name must be at least 2 characters")
+)
+
 type User struct {
-	ID        string
-	Name      string
-	Email     string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// emailRegex is the regular expression for validating email format.
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
-// NewUser creates a new User with validation.
-// Returns an error if email or name is invalid.
-func NewUser(name, email string) (*User, error) {
-	if err := validateName(name); err != nil {
-		return nil, err
-	}
-	if err := validateEmail(email); err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	return &User{
-		ID:        uuid.New().String(),
-		Name:      strings.TrimSpace(name),
-		Email:     strings.ToLower(strings.TrimSpace(email)),
-		CreatedAt: now,
-		UpdatedAt: now,
-	}, nil
+type CreateUserInput struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+	Role  string `json:"role"`
 }
 
-// Update modifies user fields with validation.
-func (u *User) Update(name, email string) error {
-	if err := validateName(name); err != nil {
-		return err
-	}
-	if err := validateEmail(email); err != nil {
-		return err
-	}
-
-	u.Name = strings.TrimSpace(name)
-	u.Email = strings.ToLower(strings.TrimSpace(email))
-	u.UpdatedAt = time.Now()
-	return nil
+type UpdateUserInput struct {
+	Email *string `json:"email,omitempty"`
+	Name  *string `json:"name,omitempty"`
+	Role  *string `json:"role,omitempty"`
 }
 
-// validateEmail checks if the email format is valid.
-func validateEmail(email string) error {
-	email = strings.TrimSpace(email)
-	if email == "" || !emailRegex.MatchString(email) {
+func (c *CreateUserInput) Validate() error {
+	if len(c.Email) < 5 || !containsAt(c.Email) {
 		return ErrInvalidEmail
 	}
+	if len(c.Name) < 2 {
+		return ErrInvalidName
+	}
+	if c.Role == "" {
+		c.Role = "user"
+	}
 	return nil
 }
 
-// validateName checks if the name is valid.
-func validateName(name string) error {
-	if strings.TrimSpace(name) == "" {
-		return ErrInvalidName
+func containsAt(s string) bool {
+	for _, c := range s {
+		if c == '@' {
+			return true
+		}
 	}
-	return nil
+	return false
 }

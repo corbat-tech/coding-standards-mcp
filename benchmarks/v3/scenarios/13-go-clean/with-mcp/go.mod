@@ -1,5 +1,3 @@
-module github.com/corbat/userservice
+module github.com/example/userservice
 
 go 1.21
-
-require github.com/google/uuid v1.5.0

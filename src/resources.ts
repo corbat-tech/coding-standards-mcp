@@ -76,6 +76,10 @@ export async function readResource(uri: string): Promise<{ uri: string; mimeType
   // Specific profile
   if (uri.startsWith('corbat://profiles/')) {
     const profileId = uri.replace('corbat://profiles/', '');
+    // Validate profile ID to prevent path traversal attacks
+    if (!/^[a-zA-Z0-9_-]+$/.test(profileId)) {
+      return null;
+    }
     const profile = await getProfile(profileId);
 
     if (!profile) return null;
@@ -106,6 +110,10 @@ export async function readResource(uri: string): Promise<{ uri: string; mimeType
   // Standards by category
   if (uri.startsWith('corbat://standards/')) {
     const category = uri.replace('corbat://standards/', '');
+    // Validate category to prevent path traversal attacks
+    if (!/^[a-zA-Z0-9_-]+$/.test(category)) {
+      return null;
+    }
     const standards = await getStandardsByCategory(category);
 
     if (standards.length === 0) return null;
