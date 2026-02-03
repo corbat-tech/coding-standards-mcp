@@ -203,6 +203,7 @@ class ScenarioMetrics:
     test_coverage_estimate: float = 0.0
     has_unit_tests: bool = False
     has_integration_tests: bool = False
+    testing_score: float = 0.0
 
     # Mejores prácticas
     best_practices_score: float = 0.0
@@ -729,7 +730,7 @@ class TypeScriptAnalyzer(BaseAnalyzer):
         return result
 
     def analyze_best_practices(self, path: Path) -> dict:
-        """Analiza mejores prácticas de TypeScript."""
+        """Analiza mejores prácticas de TypeScript - MEJORADO con penalties."""
         result = {
             "score": 0.0,
             "details": []
@@ -749,21 +750,56 @@ class TypeScriptAnalyzer(BaseAnalyzer):
             "decorators": (r'@\w+\(', 10, "Decorators (NestJS)")
         }
 
+        # NUEVO: Penalties por malas prácticas
+        penalties = [
+            (r':\s*any\b', -8, "Using 'any' type"),
+            (r'console\.(log|debug|info|warn)\s*\(', -5, "Console statements in production"),
+            (r'\.then\s*\([^)]+\)(?!\s*\.catch)', -4, "Promise without error handling"),
+            (r'(localhost|127\.0\.0\.1|:3000|:8080)', -3, "Hardcoded localhost/port"),
+            (r'==(?!=)', -3, "Loose equality (use ===)"),
+        ]
+
+        # NUEVO: Bonuses adicionales por buenas prácticas
+        bonuses = [
+            (r'class\s+\w+Error\s+extends\s+Error', 12, "Custom error classes"),
+            (r'z\.object|yup\.object|Joi\.object', 8, "Schema validation"),
+            (r'constructor\s*\([^)]*private\s+readonly', 10, "Constructor DI with readonly"),
+            (r'implements\s+\w+', 8, "Implements interface"),
+            (r'@Injectable\s*\(\)', 8, "NestJS Injectable"),
+        ]
+
         total_score = 0
+        all_content = ""
+
         for file in path.rglob("*.ts"):
             content = file.read_text(errors='ignore')
+            all_content += content + "\n"
             for key, (pattern, points, desc) in checks.items():
                 if re.search(pattern, content):
                     if desc not in [d.split(": ")[0] for d in result["details"]]:
                         total_score += points
                         result["details"].append(f"✓ {desc}")
 
+        # Aplicar penalties
+        for pattern, points, desc in penalties:
+            matches = len(re.findall(pattern, all_content))
+            if matches > 0:
+                penalty = points * min(matches, 3)  # Cap at 3x
+                total_score += penalty
+                result["details"].append(f"⚠ {desc} ({matches}x) [{penalty}]")
+
+        # Aplicar bonuses
+        for pattern, points, desc in bonuses:
+            if re.search(pattern, all_content):
+                total_score += points
+                result["details"].append(f"✓ {desc} [+{points}]")
+
         # Check for tsconfig.json
         if (path / "tsconfig.json").exists():
             total_score += 10
             result["details"].append("✓ TypeScript config present")
 
-        result["score"] = min(100, total_score)
+        result["score"] = max(0, min(100, total_score))
         return result
 
 
@@ -866,10 +902,10 @@ class PythonAnalyzer(BaseAnalyzer):
 
 
 class GoAnalyzer(BaseAnalyzer):
-    """Analizador específico para Go."""
+    """Analizador específico para Go - MEJORADO."""
 
     def analyze_architecture(self, path: Path) -> dict:
-        """Analiza adherencia a arquitectura."""
+        """Analiza adherencia a arquitectura Go idiomática."""
         result = {
             "score": 0.0,
             "pattern_adherence": 0.0,
@@ -878,47 +914,101 @@ class GoAnalyzer(BaseAnalyzer):
             "details": []
         }
 
-        structures = {
+        # 1. Estructuras Go idiomáticas - buscar en TODOS los niveles
+        go_structures = {
+            # Go idiomático
+            "internal": False,
+            "pkg": False,
+            "cmd": False,
+            # Clean Architecture
             "domain": False,
             "usecase": False,
             "adapter": False,
             "infrastructure": False,
+            # Layered
+            "handler": False,
             "handlers": False,
-            "models": False,
+            "service": False,
+            "repository": False,
             "store": False,
-            "middleware": False
+            "model": False,
+            "models": False,
+            "middleware": False,
         }
 
-        for item in path.iterdir():
+        # CORREGIDO: Buscar en TODOS los subdirectorios con rglob
+        for item in path.rglob("*"):
             if item.is_dir():
                 name = item.name.lower()
-                for struct in structures:
+                for struct in go_structures:
                     if struct in name:
-                        structures[struct] = True
+                        go_structures[struct] = True
+
+        # 2. Analizar CÓDIGO para patrones (no solo estructura)
+        interface_count = 0
+        error_handling_count = 0
+        http_handler_count = 0
+        context_usage = 0
+
+        for file in path.rglob("*.go"):
+            if any(skip in str(file) for skip in ['vendor', '.git']):
+                continue
+            try:
+                content = file.read_text(errors='ignore')
+                interface_count += len(re.findall(r'type\s+\w+\s+interface\s*\{', content))
+                error_handling_count += len(re.findall(r'if\s+err\s*!=\s*nil', content))
+                http_handler_count += len(re.findall(
+                    r'func.*http\.ResponseWriter.*\*http\.Request|'
+                    r'func.*\*gin\.Context|func.*echo\.Context|func.*fiber\.Ctx', content))
+                context_usage += len(re.findall(r'context\.Context|ctx\s+context\.Context', content))
+            except Exception:
+                pass
+
+        # 3. Calcular bonus por código bien estructurado
+        code_quality_bonus = min(40,
+            interface_count * 8 +
+            (10 if error_handling_count > 5 else 0) +
+            (10 if http_handler_count > 0 else 0) +
+            (5 if context_usage > 0 else 0))
 
         if self.pattern == "clean":
             required = ["domain", "usecase", "adapter"]
-            found = sum(1 for s in required if structures.get(s, False))
+            alt_required = ["internal", "pkg"]
 
-            # Buscar interfaces
-            interface_count = 0
-            for file in path.rglob("*.go"):
-                content = file.read_text(errors='ignore')
-                interface_count += len(re.findall(r'type\s+\w+\s+interface\s*{', content))
+            found = sum(1 for s in required if go_structures.get(s, False))
+            alt_found = sum(1 for s in alt_required if go_structures.get(s, False))
 
-            result["pattern_adherence"] = (found / len(required)) * 70 + min(30, interface_count * 10)
-            result["dependency_direction"] = found >= 2
+            # Aceptar tanto estructura clean como idiomática Go
+            base_score = max(found / len(required), alt_found / len(alt_required) if alt_required else 0) * 60
+            result["pattern_adherence"] = min(100, base_score + code_quality_bonus)
+            result["dependency_direction"] = found >= 2 or alt_found >= 1
 
         elif self.pattern == "layered":
-            required = ["handlers", "models", "store"]
-            found = sum(1 for s in required if structures.get(s, False))
-            result["pattern_adherence"] = (found / len(required)) * 100
+            required = ["handler", "handlers", "model", "models", "store", "service"]
+            found = sum(1 for s in required if go_structures.get(s, False))
 
-        active_structures = sum(1 for v in structures.values() if v)
-        result["layer_separation"] = min(100, active_structures * 15)
+            # Go puede tener estructura plana con archivos bien nombrados
+            if found < 2:
+                files = list(path.rglob("*.go"))
+                has_handler = any('handler' in f.name.lower() for f in files)
+                has_service = any('service' in f.name.lower() for f in files)
+                has_model = any('model' in f.name.lower() or 'entity' in f.name.lower() for f in files)
+                flat_found = sum([has_handler, has_service, has_model])
+                found = max(found, flat_found)
 
-        result["score"] = (result["pattern_adherence"] * 0.7 +
-                         result["layer_separation"] * 0.3)
+            result["pattern_adherence"] = min(100, (found / 3) * 60 + code_quality_bonus)
+
+        active_structures = sum(1 for v in go_structures.values() if v)
+        result["layer_separation"] = min(100, active_structures * 10 + code_quality_bonus * 0.5)
+
+        result["score"] = (
+            result["pattern_adherence"] * 0.6 +
+            result["layer_separation"] * 0.3 +
+            (20 if result["dependency_direction"] else 0) * 0.1
+        )
+
+        result["details"].append(f"Interfaces: {interface_count}")
+        result["details"].append(f"Error handlers: {error_handling_count}")
 
         return result
 
@@ -1230,10 +1320,42 @@ def analyze_scenario(scenario_id: str, variant: str) -> ScenarioMetrics:
         test_ratio = metrics.test_files / metrics.total_files
         metrics.test_coverage_estimate = min(100, test_ratio * 200)  # Rough estimate
 
+    # Calcular testing score
+    metrics.testing_score = calculate_testing_score(metrics)
+
     # Calcular puntuación final
     metrics.final_score = calculate_final_score(metrics)
 
     return metrics
+
+
+def calculate_testing_score(metrics: ScenarioMetrics) -> float:
+    """Calcula score de testing de forma justa."""
+    score = 0.0
+
+    # 1. Tests presentes (hasta 50 puntos)
+    if metrics.test_files > 0:
+        score += 30  # Base por tener tests
+        score += min(20, metrics.test_files * 5)  # Bonus por cantidad
+
+    # 2. Ratio tests/código (hasta 30 puntos)
+    if metrics.total_files > 0:
+        test_ratio = metrics.test_files / metrics.total_files
+        score += min(30, test_ratio * 150)  # ~20% tests = 30 puntos
+
+    # 3. Unit tests detectados (10 puntos)
+    if metrics.has_unit_tests:
+        score += 10
+
+    # 4. Integration tests (10 puntos)
+    if metrics.has_integration_tests:
+        score += 10
+
+    # 5. Coverage estimate bonus
+    if metrics.test_coverage_estimate > 0:
+        score += min(10, metrics.test_coverage_estimate * 0.1)
+
+    return min(100, score)
 
 
 def calculate_final_score(metrics: ScenarioMetrics) -> float:
@@ -1244,9 +1366,7 @@ def calculate_final_score(metrics: ScenarioMetrics) -> float:
         "code_quality": metrics.code_quality_score,
         "best_practices": metrics.best_practices_score,
         "error_handling": metrics.error_handling_score,
-        "testing": (metrics.test_coverage_estimate * 0.5 +
-                   (50 if metrics.has_unit_tests else 0) +
-                   (50 if metrics.has_integration_tests else 0)) / 2,
+        "testing": calculate_testing_score(metrics),
         "documentation": metrics.documentation_score,
         "security": metrics.security_score
     }

@@ -40,13 +40,36 @@ jobs:
         if: matrix.node-version == 20
         run: npm run test:coverage
 
+      - name: Validate coverage thresholds
+        if: matrix.node-version == 20
+        run: |
+          # Extract coverage percentages from lcov report
+          LINES_COV=$(grep -A 3 'Lines' coverage/lcov-report/index.html | grep -oP '\d+\.\d+%' | head -1 | tr -d '%')
+          BRANCH_COV=$(grep -A 3 'Branches' coverage/lcov-report/index.html | grep -oP '\d+\.\d+%' | head -1 | tr -d '%')
+
+          echo "Lines coverage: ${LINES_COV}%"
+          echo "Branch coverage: ${BRANCH_COV}%"
+
+          # Check minimum thresholds (lines: 70%, branches: 60%)
+          if (( $(echo "$LINES_COV < 70" | bc -l) )); then
+            echo "ERROR: Lines coverage ${LINES_COV}% is below threshold of 70%"
+            exit 1
+          fi
+
+          if (( $(echo "$BRANCH_COV < 60" | bc -l) )); then
+            echo "ERROR: Branch coverage ${BRANCH_COV}% is below threshold of 60%"
+            exit 1
+          fi
+
+          echo "Coverage thresholds met!"
+
       - name: Upload coverage to Codecov
         if: matrix.node-version == 20
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
   # ===========================================
   # Lint and Format
@@ -153,11 +176,9 @@ jobs:
 
       - name: Run npm audit
         run: npm audit --audit-level=high
-        continue-on-error: true
 
       - name: Run Snyk security scan
         uses: snyk/actions/node@master
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:

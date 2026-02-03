@@ -214,10 +214,17 @@ const GOOD_PRACTICES: Array<{
   { pattern: /\.map\s*\(|\.filter\s*\(|\.reduce\s*\(/g, name: 'functional_style', weight: 3 },
 ];
 
+/** Maximum allowed code size in characters (1MB) */
+const MAX_CODE_SIZE = 1_000_000;
+
 /**
  * Analyze code and return issues, metrics, and score.
+ * @throws Error if code exceeds MAX_CODE_SIZE
  */
 export function analyzeCode(code: string): AnalysisResult {
+  if (code.length > MAX_CODE_SIZE) {
+    throw new Error(`Code input exceeds maximum size of ${MAX_CODE_SIZE} characters`);
+  }
   const lines = code.split('\n');
   const issues: AnalysisIssue[] = [];
 

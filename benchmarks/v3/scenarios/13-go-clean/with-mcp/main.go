@@ -1,31 +1,33 @@
-// Package main is the entry point for the user service.
 package main
 
 import (
 	"log"
-	"net/http"
-	"os"
+	nethttp "net/http"
 
-	httpAdapter "github.com/corbat/userservice/adapter/http"
-	"github.com/corbat/userservice/adapter/repository"
-	"github.com/corbat/userservice/usecase"
+	"github.com/example/userservice/adapter/http"
+	"github.com/example/userservice/adapter/repository"
+	"github.com/example/userservice/usecase"
 )
 
 func main() {
-	// Dependency injection: wire up all dependencies
-	userRepo := repository.NewInMemoryUserRepository()
-	userUseCase := usecase.NewUserUseCase(userRepo)
-	userHandler := httpAdapter.NewUserHandler(userUseCase)
-	router := httpAdapter.NewRouter(userHandler)
+	repo := repository.NewInMemoryUserRepository()
+	idGen := func() string { return "id-" + randomString(8) }
+	userUseCase := usecase.NewUserUseCase(repo, idGen)
+	handler := http.NewUserHandler(userUseCase)
 
-	// Get port from environment or use default
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	mux := nethttp.NewServeMux()
+	mux.Handle("/users", handler)
+	mux.Handle("/users/", handler)
 
-	log.Printf("Starting user service on port %s", port)
-	if err := http.ListenAndServe(":"+port, router); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	log.Println("Server starting on :8080")
+	log.Fatal(nethttp.ListenAndServe(":8080", mux))
+}
+
+func randomString(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[i%len(letters)]
 	}
+	return string(b)
 }

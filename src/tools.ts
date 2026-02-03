@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { classifyTaskType, detectProjectStack, getGuardrails, getProjectRules, loadProjectConfig } from './agent.js';
 import { config } from './config.js';
+import { formatErrorForResponse, ProfileNotFoundError, ToolInputError } from './errors.js';
 import { getProfile, listProfiles, loadStandards } from './profiles.js';
 
 /**
@@ -126,13 +127,15 @@ export async function handleToolCall(
       return handleProfiles();
     case 'health':
       return handleHealth();
-    default:
+    default: {
+      const error = new ToolInputError(name, 'Unknown tool', {
+        availableTools: ['get_context', 'validate', 'search', 'profiles', 'health'],
+      });
       return {
-        content: [
-          { type: 'text', text: `Unknown tool: ${name}. Available: get_context, validate, search, profiles, health` },
-        ],
+        content: [{ type: 'text', text: formatErrorForResponse(error) }],
         isError: true,
       };
+    }
   }
 }
 
@@ -161,11 +164,13 @@ async function handleGetContext(
   const profile = await getProfile(profileId);
 
   if (!profile) {
+    const availableProfiles = (await listProfiles()).map((p) => p.id);
+    const error = new ProfileNotFoundError(profileId, availableProfiles);
     return {
       content: [
         {
           type: 'text',
-          text: `Profile "${profileId}" not found.\n\nAvailable profiles:\n${(await listProfiles()).map((p) => `- ${p.id}`).join('\n')}\n\nRun \`corbat-init\` in your project to create a custom profile.`,
+          text: `${formatErrorForResponse(error)}\n\nRun \`corbat-init\` in your project to create a custom profile.`,
         },
       ],
       isError: true,
@@ -278,8 +283,9 @@ async function handleValidate(
   const profile = await getProfile(profileId);
 
   if (!profile) {
+    const error = new ProfileNotFoundError(profileId);
     return {
-      content: [{ type: 'text', text: `Profile not found: ${profileId}` }],
+      content: [{ type: 'text', text: formatErrorForResponse(error) }],
       isError: true,
     };
   }
@@ -357,8 +363,9 @@ async function handleSearch(
   const { query } = SearchSchema.parse(args);
 
   if (!query.trim()) {
+    const error = new ToolInputError('search', 'Query cannot be empty');
     return {
-      content: [{ type: 'text', text: 'Please provide a search query.' }],
+      content: [{ type: 'text', text: formatErrorForResponse(error) }],
       isError: true,
     };
   }
