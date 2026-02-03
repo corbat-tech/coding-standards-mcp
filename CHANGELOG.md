@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Benchmark v3 value analysis assets (value report, metrics JSON, Python analyzers) quantifying code reduction, security, and maintainability.
+- Migration guide for v1.x→v2.x with validation commands and troubleshooting tips (`docs/MIGRATION.md`).
+- Audit log capturing quality rounds, coverage goals, and remediation status (`docs/audits/AUDIT_LOG.md`).
+
+### Changed
+- V3 scenario implementations rewritten to be leaner while keeping production patterns; benchmark datasets and results refreshed.
+- README now highlights 30-second setup, value-focused examples, and updated benchmark summary.
+- CI now enforces coverage thresholds (70% lines / 60% branches) and blocks on npm audit/Snyk failures.
+
+### Fixed
+- `serverVersion` alignment to 2.0.0 with safer env parsing for cache TTL and log levels.
+- Structured error responses across tools via `errors.ts` integration.
+
+### Security
+- Profile/category resource lookups now validate IDs to prevent path traversal.
+- Logger supports correlation IDs for request-scoped tracing; code analyzer rejects inputs over 1MB to avoid DoS-style processing.
+
 ## [2.0.0] - 2026-01-28
 
 ### Added - Smart Enforcement System
