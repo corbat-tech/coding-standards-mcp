@@ -75,7 +75,7 @@
     "@vitest/coverage-v8": "^4.0.17",
     "dependency-cruiser": "^17.3.7",
     "tsx": "^4.6.0",
-    "typescript": "^5.3.0",
+    "typescript": "^6.0.2",
     "vitest": "^4.0.17"
   }
 }
