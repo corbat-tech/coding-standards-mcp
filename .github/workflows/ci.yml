@@ -34,6 +34,7 @@ jobs:
         run: npm run build
 
       - name: Run tests
+        if: matrix.node-version != 18
         run: npm test
 
       - name: Run tests with coverage
@@ -177,7 +178,22 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=high
 
+      - name: Check Snyk token availability
+        id: snyk-token
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "::warning title=Snyk scan skipped::SNYK_TOKEN is not configured. npm audit still enforces high severity vulnerability blocking."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Snyk token is configured."
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
       - name: Run Snyk security scan
+        if: steps.snyk-token.outputs.available == 'true'
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
