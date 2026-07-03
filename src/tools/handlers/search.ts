@@ -1,3 +1,4 @@
+import { formatErrorForResponse, ToolInputError } from '../../errors.js';
 import { loadStandards } from '../../profiles.js';
 import { SearchSchema } from '../schemas.js';
 
@@ -11,8 +12,9 @@ export async function handleSearch(
   const { query } = SearchSchema.parse(args);
 
   if (!query.trim()) {
+    const error = new ToolInputError('search', 'Search query cannot be empty');
     return {
-      content: [{ type: 'text', text: 'Please provide a search query.' }],
+      content: [{ type: 'text', text: formatErrorForResponse(error) }],
       isError: true,
     };
   }

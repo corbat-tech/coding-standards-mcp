@@ -7,6 +7,7 @@
  * - handleToolCall dispatcher
  */
 
+import { formatErrorForResponse, ToolInputError } from '../errors.js';
 import { logger } from '../logger.js';
 import { recordError, recordToolCall } from '../metrics.js';
 import type { ToolName } from './definitions.js';
@@ -65,15 +66,15 @@ export async function handleToolCall(
         break;
       default:
         recordError();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Unknown tool: ${name}. Available: get_context, validate, verify, search, profiles, health, init`,
-            },
-          ],
-          isError: true,
-        };
+        {
+          const error = new ToolInputError(name, 'Unknown tool', {
+            availableTools: ['get_context', 'validate', 'verify', 'search', 'profiles', 'health', 'init'],
+          });
+          return {
+            content: [{ type: 'text', text: formatErrorForResponse(error) }],
+            isError: true,
+          };
+        }
     }
 
     if (result.isError) {

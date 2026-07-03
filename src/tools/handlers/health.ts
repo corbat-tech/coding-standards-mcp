@@ -1,6 +1,8 @@
 import { config } from '../../config.js';
+import { loadGuardrails } from '../../guardrails.js';
 import { getMetrics } from '../../metrics.js';
 import { listProfiles, loadStandards } from '../../profiles.js';
+import { tools } from '../definitions.js';
 
 /**
  * Handler for the health tool.
@@ -12,14 +14,19 @@ export async function handleHealth(): Promise<{ content: Array<{ type: 'text'; t
   try {
     const profiles = await listProfiles();
     const standards = await loadStandards();
+    const guardrails = await loadGuardrails();
     const loadTimeMs = Date.now() - startTime;
     const metrics = getMetrics();
+    const capabilities = ['tools', 'resources', 'prompts'];
 
     const lines = [
       '# Corbat MCP Health',
       '',
       '**Status:** OK',
       `**Version:** ${config.serverVersion}`,
+      `**Package version:** ${config.serverVersion}`,
+      `**Standards version:** ${config.serverVersion}`,
+      `**Runtime Node:** ${process.version}`,
       `**Uptime:** ${metrics.uptimeFormatted}`,
       `**Load time:** ${loadTimeMs}ms`,
       '',
@@ -27,7 +34,13 @@ export async function handleHealth(): Promise<{ content: Array<{ type: 'text'; t
       '',
       `- **Profiles:** ${profiles.length}`,
       `- **Standards:** ${standards.length} documents`,
+      `- **Guardrails:** ${Object.keys(guardrails).length}`,
       `- **Default profile:** ${config.defaultProfile}`,
+      '',
+      '## Capabilities',
+      '',
+      `- **Protocol capabilities:** ${capabilities.join(', ')}`,
+      `- **Tools:** ${tools.map((tool) => tool.name).join(', ')}`,
       '',
     ];
 

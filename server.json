@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.corbat-tech/coding-standards",
-  "description": "AI coding standards that enforce production-grade code with DDD, SOLID, TDD guardrails.",
+  "description": "Standards, policy, and verification engine for AI coding agents.",
   "repository": {
     "url": "https://github.com/corbat-tech/coding-standards-mcp",
     "source": "github"
   },
-  "version": "1.0.3",
+  "version": "3.0.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@corbat-tech/coding-standards-mcp",
-      "version": "1.0.3",
+      "version": "3.0.0",
       "transport": {
         "type": "stdio"
       }

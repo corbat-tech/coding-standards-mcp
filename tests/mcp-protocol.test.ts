@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../src/config.js';
 import { handleGetPrompt, prompts } from '../src/prompts.js';
 import { listResources, readResource } from '../src/resources.js';
-import { handleToolCall, tools } from '../src/tools.js';
+import { handleToolCall, tools } from '../src/tools/index.js';
 
 /**
  * Create a test server instance with all handlers registered.
@@ -135,8 +135,16 @@ describe('MCP Protocol E2E Tests', () => {
     it('should list all available tools', async () => {
       const { tools: availableTools } = await client.listTools();
 
-      expect(availableTools).toHaveLength(5);
-      expect(availableTools.map((t) => t.name)).toEqual(['get_context', 'validate', 'search', 'profiles', 'health']);
+      expect(availableTools).toHaveLength(7);
+      expect(availableTools.map((t) => t.name)).toEqual([
+        'get_context',
+        'validate',
+        'verify',
+        'search',
+        'profiles',
+        'health',
+        'init',
+      ]);
     });
 
     it('should call get_context tool successfully', async () => {
@@ -145,7 +153,7 @@ describe('MCP Protocol E2E Tests', () => {
         arguments: { task: 'Create a REST API endpoint' },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       expect(result.content).toHaveLength(1);
 
       const textContent = result.content[0];
@@ -162,17 +170,31 @@ describe('MCP Protocol E2E Tests', () => {
       const result = await client.callTool({
         name: 'validate',
         arguments: {
-          code: 'public class UserService { private final UserRepository repo; }',
+          code: `
+            describe('UserService', () => {
+              it('creates a service', () => {});
+            });
+
+            interface UserService {
+              findUser(id: string): User;
+            }
+
+            class UserServiceImpl implements UserService {
+              findUser(id: string): User {
+                return { id };
+              }
+            }
+          `,
           task_type: 'feature',
         },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       expect(result.content).toHaveLength(1);
 
       const textContent = result.content[0];
       if (textContent.type === 'text') {
-        expect(textContent.text).toContain('Validation');
+        expect(textContent.text).toContain('Code Analysis Results');
         expect(textContent.text).toContain('FEATURE');
       }
     });

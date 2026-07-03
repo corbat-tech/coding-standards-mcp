@@ -30,23 +30,10 @@ export async function handleVerify(
 ): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   const { code, tests, interfaces } = VerifySchema.parse(args);
 
-  // Combine all code for comprehensive analysis
-  const allCodeParts: string[] = [];
-
-  if (interfaces) {
-    allCodeParts.push('// === INTERFACES ===', interfaces);
-  }
-
-  if (tests) {
-    allCodeParts.push('// === TESTS ===', tests);
-  }
-
-  allCodeParts.push('// === IMPLEMENTATION ===', code);
-
-  const allCode = allCodeParts.join('\n\n');
-
-  // Run analysis
-  const analysis = analyzeCode(allCode);
+  const implementationAnalysis = analyzeCode({ code, requireTests: false });
+  const testAnalysis = tests ? analyzeCode({ code: tests, requireTests: false }) : null;
+  const interfaceAnalysis = interfaces ? analyzeCode({ code: interfaces, requireTests: false }) : null;
+  const analysis = combineAnalysisResults(implementationAnalysis, testAnalysis, interfaceAnalysis);
 
   // Additional verification checks beyond the analyzer
   const verificationResults = runVerificationChecks(code, tests, interfaces, analysis);
@@ -75,8 +62,10 @@ export async function handleVerify(
     lines.push(`- Interfaces provided: ${interfaces ? 'Yes' : 'No'}`);
     lines.push(`- Critical issues: ${analysis.issues.filter((i) => i.type === 'CRITICAL').length}`);
     lines.push(`- Warnings: ${analysis.issues.filter((i) => i.type === 'WARNING').length}`);
-    lines.push(`- Test count: ${analysis.metrics.testCount}`);
-    lines.push(`- Interface count: ${analysis.metrics.interfaceCount}`);
+    lines.push(`- Test count: ${testAnalysis?.metrics.testCount ?? 0}`);
+    lines.push(
+      `- Interface count: ${(interfaceAnalysis?.metrics.interfaceCount ?? 0) + implementationAnalysis.metrics.interfaceCount}`
+    );
     lines.push('');
 
     lines.push('---', '');
@@ -203,4 +192,41 @@ function runVerificationChecks(
   const passed = failures.length === 0;
 
   return { passed, failures, warnings };
+}
+
+function combineAnalysisResults(
+  implementationAnalysis: AnalysisResult,
+  testAnalysis: AnalysisResult | null,
+  interfaceAnalysis: AnalysisResult | null
+): AnalysisResult {
+  const analyses = [implementationAnalysis, testAnalysis, interfaceAnalysis].filter(
+    (analysis): analysis is AnalysisResult => Boolean(analysis)
+  );
+  const issues = analyses.flatMap((analysis) => analysis.issues);
+  const metrics = {
+    totalLines: analyses.reduce((sum, analysis) => sum + analysis.metrics.totalLines, 0),
+    codeLines: analyses.reduce((sum, analysis) => sum + analysis.metrics.codeLines, 0),
+    commentLines: analyses.reduce((sum, analysis) => sum + analysis.metrics.commentLines, 0),
+    methodCount: analyses.reduce((sum, analysis) => sum + analysis.metrics.methodCount, 0),
+    classCount: analyses.reduce((sum, analysis) => sum + analysis.metrics.classCount, 0),
+    interfaceCount: analyses.reduce((sum, analysis) => sum + analysis.metrics.interfaceCount, 0),
+    testCount: analyses.reduce((sum, analysis) => sum + analysis.metrics.testCount, 0),
+    maxMethodLines: Math.max(...analyses.map((analysis) => analysis.metrics.maxMethodLines), 0),
+    maxClassLines: Math.max(...analyses.map((analysis) => analysis.metrics.maxClassLines), 0),
+    customErrorCount: analyses.reduce((sum, analysis) => sum + analysis.metrics.customErrorCount, 0),
+    importCount: analyses.reduce((sum, analysis) => sum + analysis.metrics.importCount, 0),
+  };
+  const score = Math.round(analyses.reduce((sum, analysis) => sum + analysis.score, 0) / analyses.length);
+  const criticalCount = issues.filter((issue) => issue.type === 'CRITICAL').length;
+
+  return {
+    issues,
+    score,
+    summary:
+      criticalCount > 0
+        ? `NEEDS WORK: ${criticalCount} critical issue(s) must be fixed`
+        : 'Verification analysis complete',
+    metrics,
+    passed: criticalCount === 0 && score >= 60,
+  };
 }

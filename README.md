@@ -1,9 +1,9 @@
 <div align="center">
 
 # CORBAT MCP
-#### AI Coding Standards Server
+#### Policy and quality engine for AI coding agents
 
-**AI-generated code that passes code review on the first try.**
+**Shared standards, context, and verification gates for agent-assisted software delivery.**
 
 [![npm version](https://img.shields.io/npm/v/@corbat-tech/coding-standards-mcp.svg)](https://www.npmjs.com/package/@corbat-tech/coding-standards-mcp)
 [![CI](https://github.com/corbat-tech/coding-standards-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/corbat-tech/coding-standards-mcp/actions/workflows/ci.yml)
@@ -20,7 +20,7 @@
 [![Zed](https://img.shields.io/badge/Zed-✓-084CCF?style=flat-square)](docs/setup.md#zed)
 [![Claude](https://img.shields.io/badge/Claude-✓-cc785c?style=flat-square)](docs/setup.md#claude-desktop)
 
-**Works with GitHub Copilot, Continue, Cline, Tabnine, Amazon Q, and [25+ more tools](docs/compatibility.md)**
+**Designed for MCP-compatible coding tools and multi-agent workflows. See [compatibility notes](docs/compatibility.md).**
 
 ⚡ **Try it in 30 seconds** — just add the config below and start coding.
 
@@ -30,7 +30,7 @@
 
 ## The Problem
 
-AI-generated code works, but rarely passes code review:
+AI-generated code often works locally but misses team-specific review expectations:
 
 | Without Corbat | With Corbat |
 |----------------|-------------|
@@ -39,11 +39,9 @@ AI-generated code works, but rarely passes code review:
 | `throw new Error('failed')` | Custom exceptions with context |
 | Missing or minimal tests | Tests included, TDD approach |
 | God classes, mixed concerns | SOLID principles, clean layers |
-| Works on my machine | Production-ready patterns |
+| Works locally | Reviewable implementation with explicit checks |
 
-**Sound familiar?** You spend more time fixing AI code than writing it yourself.
-
-**Corbat MCP solves this** by injecting your team's coding standards *before* the AI generates code — not after.
+Corbat helps by giving agents your team's standards before implementation and by providing validation tools before review or handoff.
 
 ---
 
@@ -73,9 +71,9 @@ AI-generated code works, but rarely passes code review:
 | Claude Desktop | `~/.config/Claude/claude_desktop_config.json` |
 | Claude Code | `claude mcp add corbat -- npx -y @corbat-tech/coding-standards-mcp` |
 
-> [Complete setup guide](docs/setup.md) for all 25+ tools
+> [Complete setup guide](docs/setup.md) for common MCP-compatible tools
 
-**3. Done!** Corbat auto-detects your stack and applies the right standards.
+**3. Done.** Corbat can auto-detect your stack and return matching standards.
 
 > **Zero overhead.** Corbat runs locally and adds ~50ms to detect your stack. After that, it's just context for the AI.
 
@@ -173,13 +171,13 @@ describe('RegisterUserUseCase', () => {
 });
 ```
 
-**This is what "passes code review on the first try" looks like.**
+This is the kind of structure Corbat asks agents to consider before handoff.
 
 ---
 
-## What Corbat Enforces
+## What Corbat Provides
 
-Corbat injects these guardrails before code generation:
+Corbat provides these guardrails before generation and validation checks during iteration:
 
 ### Code Quality
 | Rule | Why It Matters |
@@ -203,7 +201,7 @@ Corbat injects these guardrails before code generation:
 | **Error context** | Include IDs, values, state in errors |
 | **No empty catches** | Every error handled or propagated |
 
-### Security (verified against OWASP Top 10)
+### Security-Oriented Checks
 | Rule | Why It Matters |
 |------|----------------|
 | **Input validation** | Reject bad data at boundaries |
@@ -215,11 +213,11 @@ Corbat injects these guardrails before code generation:
 
 ## Benchmark Results v3.0
 
-We evaluated Corbat across **15 real-world scenarios** in 6 languages.
+We evaluated Corbat across **15 scenarios** in 6 languages. The primary benchmark report is mixed and should be read honestly: Corbat won **1/15** scenarios by the original aggregate score, while an alternative value analysis found stronger results for code compactness and maintainability.
 
-### The Key Insight
+### What The Data Supports
 
-Corbat generates **focused, production-ready code** — not verbose boilerplate:
+The strongest observed signal is that Corbat-guided outputs are often smaller and more focused:
 
 | Scenario | With Corbat | Without Corbat | What This Means |
 |----------|:-----------:|:--------------:|-----------------|
@@ -228,31 +226,31 @@ Corbat generates **focused, production-ready code** — not verbose boilerplate:
 | Go Clean Arch | 459 lines | 2,012 lines | Idiomatic Go, not Java-in-Go |
 | TypeScript NestJS | 395 lines | 1,554 lines | Right patterns, right size |
 
-**This isn't "less code for less code's sake"** — it's the right abstractions without over-engineering.
+This is not enough to claim universal quality improvement. It is evidence that standards context can reduce over-generation in some workflows.
 
 ### Value Metrics
 
-When we measure what actually matters for production code:
+The value report reweights the same dataset toward efficiency and maintainability:
 
 | Metric | Result | What It Means |
 |--------|:------:|---------------|
 | **Code Reduction** | 67% | Less to maintain, review, and debug |
-| **Security** | 100% | Zero vulnerabilities across all scenarios |
+| **Security checks** | 100% | No issues detected by benchmark pattern checks |
 | **Maintainability** | 93% win | Easier to understand and modify |
 | **Architecture Efficiency** | 87% win | Better patterns per line of code |
 | **Cognitive Load** | -59% | Faster onboarding for new developers |
 
 📊 [Detailed value analysis](benchmarks/v3/CORBAT_VALUE_REPORT.md)
 
-### Security: Zero Vulnerabilities Detected
+### Security: No Benchmark Pattern Findings
 
-Every scenario was analyzed using pattern detection for OWASP Top 10 vulnerabilities:
+Every scenario was analyzed using pattern checks inspired by OWASP Top 10 categories. This is not a replacement for SAST, DAST, dependency scanning, manual review, or threat modeling.
 
-- ✓ No SQL/NoSQL injection patterns
-- ✓ No XSS vulnerabilities
-- ✓ No hardcoded credentials
-- ✓ Input validation at all boundaries
-- ✓ Proper error messages (no stack traces to users)
+- No SQL/NoSQL injection patterns detected
+- No XSS patterns detected
+- No hardcoded credentials detected
+- Input validation patterns present at boundaries
+- Error messages did not expose stack traces in the benchmark samples
 
 ### Languages & Patterns Tested
 
@@ -297,8 +295,9 @@ Corbat auto-detects your stack and applies the right standards:
 | Use Case | Why Corbat Helps |
 |----------|------------------|
 | **Starting a new project** | Correct architecture from day one |
-| **Teams with juniors** | Everyone produces senior-level patterns |
-| **Strict code review standards** | AI code meets your bar automatically |
+| **Multi-agent delivery** | Planner, implementation, review, and security agents share the same policy context |
+| **Teams with mixed experience** | Standards become explicit and repeatable |
+| **Strict code review standards** | Agents can validate against the review bar before handoff |
 | **Regulated industries** | Consistent security and documentation |
 | **Legacy modernization** | New code follows modern patterns |
 
@@ -373,9 +372,9 @@ Create `.corbat.json` in your project root:
      go.mod         + SOLID        + custom errors
 ```
 
-Corbat doesn't modify AI output — it ensures the AI knows your standards *before* generating.
+Corbat does not modify AI output. It supplies context, standards, profiles, and validation feedback so agents can align with your review expectations.
 
-**Important:** Corbat provides context and guidelines to the AI. The actual code quality depends on how well the AI model follows these guidelines. In our testing, models like Claude and GPT-4 consistently respect these guardrails.
+**Important:** Actual code quality depends on the model, host tool, prompt, repository context, tests, and human review. Treat Corbat as a policy and verification layer, not as a guarantee of production readiness.
 
 ---
 
@@ -383,17 +382,19 @@ Corbat doesn't modify AI output — it ensures the AI knows your standards *befo
 
 | Resource | Description |
 |----------|-------------|
-| [Setup Guide](docs/setup.md) | Installation for Cursor, VS Code, JetBrains, and 25+ more |
+| [Setup Guide](docs/setup.md) | Installation notes for common MCP-compatible tools |
 | [Templates](docs/templates.md) | Ready-to-use `.corbat.json` configurations |
 | [Compatibility](docs/compatibility.md) | Full list of supported AI tools |
 | [Benchmark Analysis](benchmarks/v3/BENCHMARK_REPORT_V3.md) | Detailed results from 15 scenarios |
+| [Multi-Agent Architecture](docs/multi-agent-architecture.md) | How Corbat fits planner/reviewer/security/release agent workflows |
+| [Security Model](docs/security.md) | Local execution model, threat model, and reporting |
 | [API Reference](docs/full-documentation.md) | Tools, prompts, and configuration options |
 
 ---
 
 <div align="center">
 
-### Stop fixing AI code. Start shipping it.
+### Make agent output easier to review.
 
 Add to your MCP config and you're done:
 
@@ -401,7 +402,7 @@ Add to your MCP config and you're done:
 { "mcpServers": { "corbat": { "command": "npx", "args": ["-y", "@corbat-tech/coding-standards-mcp"] }}}
 ```
 
-**Your code reviews will thank you.**
+Use Corbat as shared standards context plus a local quality gate.
 
 ---
 

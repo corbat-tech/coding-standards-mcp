@@ -4,6 +4,22 @@ Complete setup instructions for all supported tools and IDEs.
 
 ---
 
+## Prerequisites
+
+- Node.js 22 or newer.
+- `npm` or `npx` available in the environment where the MCP host starts servers.
+- Network access during first `npx` install, unless the package is already cached or installed locally.
+
+Verify the server can start:
+
+```bash
+npx -y @corbat-tech/coding-standards-mcp
+```
+
+The process uses stdio for MCP traffic and logs startup status to stderr.
+
+---
+
 ## Table of Contents
 
 - [IDEs & Editors](#ides--editors)

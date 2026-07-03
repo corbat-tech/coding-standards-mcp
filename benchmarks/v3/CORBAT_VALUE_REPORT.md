@@ -10,14 +10,14 @@ This analysis evaluates Corbat MCP based on metrics that matter for **real-world
 | Metric | Result | Why It Matters |
 |--------|--------|----------------|
 | **Code Reduction** | **67%** average | Less code = fewer bugs, easier reviews |
-| **Security** | **100%** perfect scores | Zero vulnerabilities in generated code |
+| **Security checks** | **100%** pattern-check pass rate | No benchmark security patterns detected |
 | **Maintainability** | **93%** win rate | Easier to understand and modify |
 | **Production Ready** | **20%** win rate | Ready for deployment with proper patterns |
 | **Cognitive Load** | **59%** reduction | Faster onboarding for new developers |
 
 ### The Key Insight
 
-Corbat generates **focused, production-ready code** instead of verbose boilerplate.
+In this value analysis, Corbat generated focused code with less boilerplate.
 Less code doesn't mean less functionality — it means:
 
 - **Right abstractions** without over-engineering
@@ -52,11 +52,11 @@ Less code doesn't mean less functionality — it means:
 
 ---
 
-## Security Compliance
+## Security Pattern Checks
 
-**15/15 scenarios** achieved 100% security score with Corbat.
+**15/15 scenarios** achieved 100% security pattern-check score with Corbat.
 
-All generated code was analyzed for OWASP Top 10 vulnerabilities:
+Generated code was analyzed with benchmark pattern checks inspired by OWASP Top 10 categories. This is not a substitute for SAST, DAST, dependency scanning, or manual security review.
 
 | Check | Status |
 |-------|--------|
