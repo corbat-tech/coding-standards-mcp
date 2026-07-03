@@ -9,7 +9,7 @@ import {
 import { type DetectedStack, type ProjectConfig, ProjectConfigSchema, type TaskType } from './types.js';
 
 // Re-export guardrails utilities for external use
-export { loadGuardrails, formatGuardrailsAsMarkdown, type ExtendedGuardrails };
+export { type ExtendedGuardrails, formatGuardrailsAsMarkdown, loadGuardrails };
 
 /**
  * Stack detection patterns.

@@ -126,4 +126,4 @@ export const logger = {
   },
 };
 
-export type { LogLevel, LogEntry };
+export type { LogEntry, LogLevel };
