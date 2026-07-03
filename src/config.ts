@@ -104,7 +104,7 @@ export function loadConfig(): Config {
     standardsDir: process.env.CORBAT_STANDARDS_DIR || join(rootDir, 'standards'),
     defaultProfile: process.env.CORBAT_DEFAULT_PROFILE || 'java-spring-backend',
     serverName: 'coding-standards-mcp',
-    serverVersion: '2.0.0',
+    serverVersion: '3.0.0',
     environment,
     cacheTtlMs: parseIntWithFallback(process.env.CORBAT_CACHE_TTL_MS, envConfig.cacheTtlMs ?? 60_000),
     logLevel: validateLogLevel(process.env.CORBAT_LOG_LEVEL, envConfig.logLevel ?? 'info'),

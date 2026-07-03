@@ -139,123 +139,28 @@ export async function handleGetContext(
   lines.push('```');
   lines.push('');
 
-  // === STRATEGY 1: CHECKPOINT VERIFICATION ===
-  lines.push('---', '', '## MANDATORY CHECKPOINT', '');
-  lines.push(`
-⚠️ **BEFORE writing ANY code**, respond with this JSON:
+  lines.push('---', '', '## Recommended Agent Workflow', '');
+  lines.push(
+    '- Confirm the task and ask for clarification if requirements, data contracts, or acceptance criteria are unclear.'
+  );
+  lines.push('- Identify the architecture layer, interfaces, tests, and implementation files affected before editing.');
+  lines.push('- Prefer TDD for behavior changes: write or update tests, implement, then refactor.');
+  lines.push('- Keep implementation within the profile thresholds above, especially method and class size.');
+  lines.push('- Run the project test/lint/build commands available in the target repository.');
+  lines.push('');
 
-\`\`\`json
-{
-  "checkpoint": {
-    "task_understood": true,
-    "clarifications_needed": [],
-    "approach": "Brief description of implementation approach"
-  },
-  "architecture": {
-    "layers_affected": ["domain", "application", "infrastructure"],
-    "interfaces_to_create": ["InterfaceName1", "InterfaceName2"],
-    "classes_to_create": ["ClassName1", "ClassName2"]
-  },
-  "tdd_plan": {
-    "tests_to_write": [
-      "should_do_X_when_Y",
-      "should_fail_when_Z",
-      "should_handle_edge_case"
-    ]
-  },
-  "quality_commitments": {
-    "max_method_lines": 20,
-    "max_class_lines": 200,
-    "dependency_injection": true,
-    "custom_errors": true,
-    "test_coverage_target": 80
-  }
-}
-\`\`\`
-
-**Only proceed to code generation after completing this checkpoint.**
-`);
-
-  // === STRATEGY 4: CONTRACTUAL RESPONSE FORMAT ===
-  lines.push('---', '', '## REQUIRED RESPONSE STRUCTURE', '');
-  lines.push(`
-Structure your response in this **exact order**:
-
-### 1. CHECKPOINT
-Complete the checkpoint JSON above first.
-
-### 2. INTERFACES / TYPES
-\`\`\`
-// Define ALL interfaces and types FIRST
-interface ServiceName { ... }
-type ResultType = { ... }
-\`\`\`
-
-### 3. TESTS
-\`\`\`
-// Write tests BEFORE implementation (TDD)
-describe('ServiceName', () => {
-  it('should do X when Y', () => { ... });
-  it('should fail when Z', () => { ... });
-});
-\`\`\`
-
-### 4. IMPLEMENTATION
-\`\`\`
-// NOW implement to make tests pass
-class ServiceNameImpl implements ServiceName { ... }
-\`\`\`
-
-### 5. SELF-REVIEW
-Complete the self-review JSON below.
-
-⚠️ **Code not following this structure will not meet quality standards.**
-`);
-
-  // === STRATEGY 3: MANDATORY SELF-REVIEW ===
-  lines.push('---', '', '## MANDATORY SELF-REVIEW', '');
-  lines.push(`
-After generating code, perform a self-review and report:
-
-\`\`\`json
-{
-  "self_review": {
-    "methods_over_20_lines": 0,
-    "classes_over_200_lines": 0,
-    "interfaces_created": 3,
-    "tests_written": 5,
-    "custom_errors_defined": 2,
-    "dependency_injection_used": true,
-    "hardcoded_values": 0,
-    "todos_or_fixmes": 0
-  },
-  "quality_score": "8/10",
-  "confidence": "high",
-  "improvements_if_more_time": [
-    "Add more edge case tests",
-    "Extract validation logic to separate class"
-  ]
-}
-\`\`\`
-
-**If quality_score < 7, iterate and improve before presenting the code.**
-`);
-
-  // === VERIFY TOOL REMINDER ===
-  lines.push('---', '', '## FINAL STEP', '');
-  lines.push(`
-After completing all code, call the \`verify\` tool with your generated code:
-
-\`\`\`
-verify({
-  code: "// all implementation code",
-  tests: "// all test code",
-  interfaces: "// all interfaces"
-})
-\`\`\`
-
-Only present code to user after verify returns **PASS**.
-`);
+  lines.push('---', '', '## Quality Gate', '');
+  lines.push('Use `validate` during iteration when you need code-level feedback.');
+  lines.push('Use `verify` before final handoff when implementation, tests, and interfaces are available.');
+  lines.push('');
+  lines.push('Suggested verify payload:');
+  lines.push('```json');
+  lines.push('{');
+  lines.push('  "code": "implementation code",');
+  lines.push('  "tests": "test code",');
+  lines.push('  "interfaces": "interfaces and types"');
+  lines.push('}');
+  lines.push('```');
 
   return { content: [{ type: 'text', text: lines.join('\n') }] };
 }

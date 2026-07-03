@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-03
+
+### Added
+- TypeScript AST-backed analyzer path with heuristic fallback for unsupported languages.
+- Richer `health` output with package version, standards version, runtime Node, guardrail count, and enabled tools.
+- Multi-agent architecture guide describing planner, implementer, reviewer, security, and release agent workflows.
+- Security model and security policy documentation.
+
+### Changed
+- Breaking: minimum Node.js version is now `>=22.0.0`.
+- Breaking: package version, MCP server metadata, and runtime version are aligned to `3.0.0`.
+- CI matrix now targets Node.js 22, 24, and 26, with Node.js 24 used for single-version jobs.
+- `get_context` now provides recommended workflow guidance instead of mandatory response JSON and exact output formats.
+- `verify` analyzes implementation, tests, and interfaces as separate inputs before applying verification policy.
+- README and benchmark documentation now use more defensible claims and distinguish the primary v3 benchmark from the value analysis.
+- `src/tools.ts` is now a backward-compatible re-export of the production tool registry.
+
+### Fixed
+- `validate.task_type` schema now matches advertised task types, including security, performance, documentation, and infrastructure.
+- `package.json.files` now includes `guardrails`, which are required at runtime.
+- Empty `search` queries and unknown tool calls return structured tool input errors.
+
+### Security
+- Dependency baseline updated for Node.js 22+, including `p-retry@8`, `dependency-cruiser@18`, `typescript@6`, and `@types/node@26`.
+- Snyk remains optional when `SNYK_TOKEN` is absent while `npm audit --audit-level=high` remains blocking.
+
 ### Added
 - Benchmark v3 value analysis assets (value report, metrics JSON, Python analyzers) quantifying code reduction, security, and maintainability.
 - Migration guide for v1.x→v2.x with validation commands and troubleshooting tips (`docs/MIGRATION.md`).

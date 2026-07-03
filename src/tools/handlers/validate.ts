@@ -16,9 +16,6 @@ export async function handleValidate(
 ): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   const { code, task_type } = ValidateSchema.parse(args);
 
-  // Run real code analysis
-  const analysis = analyzeCode(code);
-
   const profileId = config.defaultProfile;
   const profile = await getProfile(profileId);
 
@@ -28,6 +25,14 @@ export async function handleValidate(
       isError: true,
     };
   }
+
+  const analysis = analyzeCode({
+    code,
+    thresholds: {
+      maxMethodLines: profile.codeQuality?.maxMethodLines,
+      maxClassLines: profile.codeQuality?.maxClassLines,
+    },
+  });
 
   const guardrails = task_type ? await getGuardrails(task_type, null) : null;
 

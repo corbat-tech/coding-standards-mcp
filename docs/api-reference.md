@@ -34,12 +34,12 @@ Complete reference for Corbat MCP tools, resources, and prompts.
 
 ### validate
 
-**Real code analysis** - Analyzes code and returns specific issues with suggestions.
+**Language-aware and heuristic code analysis** - Analyzes code and returns specific issues with suggestions.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `code` | string | Yes | The code to validate |
-| `task_type` | enum | No | One of: `feature`, `bugfix`, `refactor`, `test`, `security`, `performance` |
+| `task_type` | enum | No | One of: `feature`, `bugfix`, `refactor`, `test`, `documentation`, `security`, `performance`, `infrastructure` |
 
 **Detects:**
 - Anti-patterns: empty catch, hardcoded secrets, eval, innerHTML, generic exceptions
@@ -98,16 +98,16 @@ Complete reference for Corbat MCP tools, resources, and prompts.
 
 ---
 
-### verify (NEW in v2.0)
+### verify
 
-**Quality gate** - REQUIRED before presenting code to user.
+**Quality gate** - Recommended before review, handoff, or final response.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `code` | string | Yes | All implementation code |
 | `tests` | string | Yes* | All test code (*required for TDD compliance) |
 | `interfaces` | string | No | All interfaces and type definitions |
-| `task_type` | enum | No | One of: `feature`, `bugfix`, `refactor`, `test`, `security`, `performance` |
+| `task_type` | enum | No | One of: `feature`, `bugfix`, `refactor`, `test`, `documentation`, `security`, `performance`, `infrastructure` |
 
 **Checks:**
 1. Tests are provided (TDD compliance)
@@ -116,18 +116,18 @@ Complete reference for Corbat MCP tools, resources, and prompts.
 4. Quality score >= 50
 
 **Returns:**
-- `PASS`: Code meets standards - present to user
+- `PASS`: No blocking issues detected by configured checks
 - `FAIL`: Issues listed - fix and verify again
 
 **Workflow:**
 ```
 1. Call get_context() → get guidelines
-2. Complete checkpoint JSON
-3. Write code: INTERFACES → TESTS → IMPLEMENTATION
-4. Complete self-review JSON
-5. Call verify() → must PASS
+2. Plan interfaces, tests, and implementation files
+3. Write or update tests and implementation
+4. Call validate() during iteration when useful
+5. Call verify() before handoff
 6. If FAIL: fix issues, call verify again
-7. If PASS: present to user
+7. If PASS: proceed to review or final handoff
 ```
 
 **Example:**
@@ -146,7 +146,7 @@ Complete reference for Corbat MCP tools, resources, and prompts.
 
 **Score: 85/100**
 
-The code meets quality standards and is ready to present to the user.
+No blocking issues were detected by the configured checks.
 
 ---
 

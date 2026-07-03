@@ -2,6 +2,86 @@ import { describe, expect, it } from 'vitest';
 import { analyzeCode, formatAnalysisAsMarkdown } from '../../src/analysis/code-analyzer.js';
 
 describe('CodeAnalyzer', () => {
+  describe('TypeScript AST analysis', () => {
+    it('should measure TypeScript classes, interfaces, imports, tests, and function spans', () => {
+      const code = `
+        import { describe, it } from 'vitest';
+
+        interface UserRepository {
+          findById(id: string): User | null;
+        }
+
+        type User = { id: string };
+
+        class UserService {
+          constructor(private readonly repo: UserRepository) {}
+
+          findById(id: string): User | null {
+            return this.repo.findById(id);
+          }
+        }
+
+        describe('UserService', () => {
+          it('finds users', () => {});
+        });
+      `;
+
+      const result = analyzeCode({ code, language: 'typescript' });
+
+      expect(result.metrics.importCount).toBe(1);
+      expect(result.metrics.interfaceCount).toBe(2);
+      expect(result.metrics.classCount).toBe(1);
+      expect(result.metrics.methodCount).toBeGreaterThanOrEqual(2);
+      expect(result.metrics.testCount).toBe(2);
+    });
+
+    it('should detect TypeScript anti-patterns through AST nodes', () => {
+      const code = `
+        function unsafe(value: any) {
+          try {
+            eval(value);
+          } catch {
+          }
+
+          if (value == 'x') {
+            document.body.innerHTML = value;
+          }
+
+          return new Date();
+        }
+      `;
+
+      const result = analyzeCode({ code, language: 'typescript', requireTests: false });
+      const rules = result.issues.map((issue) => issue.rule);
+
+      expect(rules).toContain('no-any-type');
+      expect(rules).toContain('no-eval');
+      expect(rules).toContain('no-empty-catch');
+      expect(rules).toContain('strict-equality');
+      expect(rules).toContain('no-inner-html');
+      expect(rules).toContain('no-hardcoded-time');
+    });
+
+    it('should apply caller-provided thresholds', () => {
+      const code = `
+        function smallEnoughByDefault() {
+          const one = 1;
+          const two = 2;
+          return one + two;
+        }
+      `;
+
+      const result = analyzeCode({
+        code,
+        language: 'typescript',
+        requireTests: false,
+        thresholds: { maxMethodLines: 2 },
+      });
+
+      expect(result.issues.some((issue) => issue.rule === 'max-method-lines')).toBe(true);
+    });
+  });
+
   describe('Anti-pattern detection', () => {
     it('should detect empty catch block', () => {
       const code = `

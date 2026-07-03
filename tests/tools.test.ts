@@ -1,17 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { tools } from '../src/tools.js';
+import { tools } from '../src/tools/index.js';
 
 describe('Tools Definition (Simplified API)', () => {
-  it('should have exactly 5 tools', () => {
-    expect(tools).toHaveLength(5);
+  it('should expose the production tool surface', () => {
+    expect(tools.map((tool) => tool.name)).toEqual([
+      'get_context',
+      'validate',
+      'verify',
+      'search',
+      'profiles',
+      'health',
+      'init',
+    ]);
   });
 
   it('should have get_context tool (PRIMARY)', () => {
     const tool = tools.find((t) => t.name === 'get_context');
 
     expect(tool).toBeDefined();
-    expect(tool?.description).toContain('PRIMARY');
-    expect(tool?.description).toContain('COMPLETE');
+    expect(tool?.description).toContain('FIRST');
     expect(tool?.inputSchema.properties).toHaveProperty('task');
     expect(tool?.inputSchema.required).toContain('task');
   });
@@ -20,7 +27,7 @@ describe('Tools Definition (Simplified API)', () => {
     const tool = tools.find((t) => t.name === 'validate');
 
     expect(tool).toBeDefined();
-    expect(tool?.description).toContain('Validate');
+    expect(tool?.description).toContain('Analyze');
     expect(tool?.inputSchema.properties).toHaveProperty('code');
     expect(tool?.inputSchema.required).toContain('code');
   });

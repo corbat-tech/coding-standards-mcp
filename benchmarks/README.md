@@ -7,13 +7,14 @@ This directory contains benchmarks comparing code quality generated **with** and
 | Version | Scenarios | Focus | Status |
 |---------|-----------|-------|--------|
 | [v1.0](./scenarios/) | 6 | Basic/Medium tasks | Complete |
-| [v2.0](./v2/) | 10 | Basic to Advanced patterns | **Current** |
+| [v2.0](./v2/) | 10 | Basic to Advanced patterns | Historical |
+| [v3.0](./v3/) | 15 | Multi-language quality and value analysis | **Current** |
 
-> **Recommended:** Use [v2.0](./v2/) for the latest methodology with minimalist prompts and advanced patterns (Saga, Event Sourcing, Circuit Breaker).
+> **Recommended:** Use [v3.0](./v3/) for the latest dataset. Read both the primary benchmark report and the value analysis; they answer different questions and should not be merged into a single headline claim.
 
 ## Purpose
 
-These benchmarks demonstrate the measurable improvement in code quality when LLMs have access to Corbat's coding standards and guardrails.
+These benchmarks evaluate how code changes when LLMs have access to Corbat's coding standards and guardrails. Results are mixed: v3 shows weaker aggregate quality scores but stronger compactness and maintainability signals under the alternative value analysis.
 
 ## Methodology
 
@@ -133,7 +134,7 @@ The v2.0 methodology addresses issues identified in v1.0:
 | **Isolation** | Partial MCP removal | Complete isolation |
 | **Metrics** | Manual scoring only | Automated + qualitative |
 
-### Expected Results
+### Historical Expected Results
 
 | Category | Expected Improvement |
 |----------|---------------------|

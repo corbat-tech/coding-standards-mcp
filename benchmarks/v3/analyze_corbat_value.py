@@ -217,7 +217,9 @@ def generate_report(metrics, summary):
     report.append("| Metric | Result | Why It Matters |")
     report.append("|--------|--------|----------------|")
     report.append(f"| **Code Reduction** | **{summary['code_reduction']['average']:.0f}%** average | Less code = fewer bugs, easier reviews |")
-    report.append(f"| **Security** | **{summary['security']['rate']:.0f}%** perfect scores | Zero vulnerabilities in generated code |")
+    report.append(
+        f"| **Security checks** | **{summary['security']['rate']:.0f}%** pattern-check pass rate | No benchmark security patterns detected |"
+    )
     report.append(f"| **Maintainability** | **{summary['maintainability']['win_rate']:.0f}%** win rate | Easier to understand and modify |")
     report.append(f"| **Production Ready** | **{summary['production_readiness']['win_rate']:.0f}%** win rate | Ready for deployment with proper patterns |")
     report.append(f"| **Cognitive Load** | **{summary['cognitive_load_reduction']['average']:.0f}%** reduction | Faster onboarding for new developers |")
@@ -226,7 +228,7 @@ def generate_report(metrics, summary):
     # Key Insight
     report.append("### The Key Insight")
     report.append("")
-    report.append("Corbat generates **focused, production-ready code** instead of verbose boilerplate.")
+    report.append("In this value analysis, Corbat generated focused code with less boilerplate.")
     report.append("Less code doesn't mean less functionality — it means:")
     report.append("")
     report.append("- **Right abstractions** without over-engineering")

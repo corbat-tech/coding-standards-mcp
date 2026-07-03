@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handleToolCall } from '../src/tools.js';
+import { handleToolCall } from '../src/tools/index.js';
 
 describe('health tool (Simplified API)', () => {
   it('should return healthy status', async () => {

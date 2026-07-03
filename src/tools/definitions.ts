@@ -48,19 +48,19 @@ EXAMPLE: get_context({ task: "Create payment service", project_dir: "/path/to/pr
     },
   },
 
-  // VALIDATE - Real code analysis
+  // VALIDATE - Language-aware and heuristic code analysis
   {
     name: 'validate',
-    description: `Analyze code against coding standards with REAL code analysis.
+    description: `Analyze code against coding standards with language-aware checks and heuristic fallback.
 
 WHEN TO USE:
 - After writing code, to check for issues
 - During iterative development
 - Before calling verify for final approval
 
-PERFORMS REAL ANALYSIS:
+PERFORMS ANALYSIS:
 - Detects anti-patterns (empty catch, hardcoded secrets, etc.)
-- Measures method/class lengths
+- Measures method/class lengths where supported
 - Checks for interfaces and tests
 - Calculates quality score
 
@@ -81,7 +81,7 @@ EXAMPLE: validate({ code: "public class UserService { ... }", task_type: "featur
         },
         task_type: {
           type: 'string',
-          enum: ['feature', 'bugfix', 'refactor', 'test', 'security', 'performance'],
+          enum: ['feature', 'bugfix', 'refactor', 'test', 'documentation', 'security', 'performance', 'infrastructure'],
           description: 'Type of task for context-aware validation (optional)',
         },
       },
@@ -89,15 +89,15 @@ EXAMPLE: validate({ code: "public class UserService { ... }", task_type: "featur
     },
   },
 
-  // VERIFY - Gate before presenting code to user (NEW in v2.0)
+  // VERIFY - Gate before handoff
   {
     name: 'verify',
-    description: `REQUIRED: Verify generated code before presenting to user.
+    description: `Verify generated code before handoff.
 
 WHEN TO USE:
-- ALWAYS call this AFTER generating code
-- BEFORE presenting code to the user
-- This is the final quality gate
+- After generating code
+- Before review, handoff, or final response
+- As a final quality gate in agent workflows
 
 WHAT IT CHECKS:
 - Tests are provided (TDD compliance)
@@ -106,14 +106,14 @@ WHAT IT CHECKS:
 - Quality score >= 50
 
 RETURNS:
-- PASS: Code meets standards, present to user
+- PASS: No blocking issues detected by configured checks
 - FAIL: Issues to fix, iterate and verify again
 
 WORKFLOW:
 1. Generate code following get_context guidelines
 2. Call verify({ code, tests, interfaces })
 3. If FAIL: fix issues and call verify again
-4. If PASS: present code to user
+4. If PASS: proceed to the next workflow step
 
 EXAMPLE: verify({ code: "class UserServiceImpl...", tests: "describe('UserService')...", interfaces: "interface UserService..." })`,
     inputSchema: {
@@ -133,7 +133,7 @@ EXAMPLE: verify({ code: "class UserServiceImpl...", tests: "describe('UserServic
         },
         task_type: {
           type: 'string',
-          enum: ['feature', 'bugfix', 'refactor', 'test', 'security', 'performance'],
+          enum: ['feature', 'bugfix', 'refactor', 'test', 'documentation', 'security', 'performance', 'infrastructure'],
           description: 'Type of task for context-aware verification',
         },
       },
@@ -204,10 +204,10 @@ RETURNS:
     },
   },
 
-  // INIT - Generate .corbat.json
+  // INIT - Suggest .corbat.json
   {
     name: 'init',
-    description: `Generate a .corbat.json configuration file for a project.
+    description: `Suggest a .corbat.json configuration for a project.
 
 WHEN TO USE:
 - Setting up Corbat for a new project

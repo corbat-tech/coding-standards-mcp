@@ -1,41 +1,20 @@
 /**
- * Lightweight code analyzer using regex and heuristics.
- * No AST parsing to keep it fast and dependency-free.
+ * Code analyzer with TypeScript AST support and heuristic fallback.
  *
- * This module provides real code analysis instead of just returning checklists.
- * It detects anti-patterns, measures code quality metrics, and provides
- * actionable feedback.
+ * This is not a full SAST engine. It provides fast, local quality checks that
+ * are useful as an agent workflow gate before project tests and reviews.
  */
+import { TypeScriptAnalyzer } from './analyzers/typescript-analyzer.js';
+import type {
+  AnalysisInput,
+  AnalysisIssue,
+  AnalysisResult,
+  CodeMetrics,
+  LanguageAnalysis,
+  LanguageAnalyzer,
+} from './types.js';
 
-export interface AnalysisIssue {
-  type: 'CRITICAL' | 'WARNING' | 'INFO';
-  rule: string;
-  message: string;
-  line?: number;
-  suggestion?: string;
-}
-
-export interface CodeMetrics {
-  totalLines: number;
-  codeLines: number;
-  commentLines: number;
-  methodCount: number;
-  classCount: number;
-  interfaceCount: number;
-  testCount: number;
-  maxMethodLines: number;
-  maxClassLines: number;
-  customErrorCount: number;
-  importCount: number;
-}
-
-export interface AnalysisResult {
-  issues: AnalysisIssue[];
-  score: number;
-  summary: string;
-  metrics: CodeMetrics;
-  passed: boolean;
-}
+export type { AnalysisInput, AnalysisIssue, AnalysisResult, CodeMetrics, CodeSpan, LanguageAnalyzer } from './types.js';
 
 // Anti-patterns to detect with their severity and suggestions
 const ANTI_PATTERNS: Array<{
@@ -216,17 +195,35 @@ const GOOD_PRACTICES: Array<{
 
 /** Maximum allowed code size in characters (1MB) */
 const MAX_CODE_SIZE = 1_000_000;
+const DEFAULT_THRESHOLDS = {
+  maxMethodLines: 20,
+  maxClassLines: 200,
+};
+const LANGUAGE_ANALYZERS: LanguageAnalyzer[] = [new TypeScriptAnalyzer()];
+
+function addIssue(issues: AnalysisIssue[], issue: AnalysisIssue): void {
+  const existingIssue = issues.find((candidate) => candidate.rule === issue.rule && candidate.line === issue.line);
+  if (!existingIssue) {
+    issues.push(issue);
+  }
+}
 
 /**
  * Analyze code and return issues, metrics, and score.
  * @throws Error if code exceeds MAX_CODE_SIZE
  */
-export function analyzeCode(code: string): AnalysisResult {
+export function analyzeCode(input: string | AnalysisInput): AnalysisResult {
+  const analysisInput = typeof input === 'string' ? { code: input } : input;
+  const { code } = analysisInput;
   if (code.length > MAX_CODE_SIZE) {
     throw new Error(`Code input exceeds maximum size of ${MAX_CODE_SIZE} characters`);
   }
   const lines = code.split('\n');
   const issues: AnalysisIssue[] = [];
+  const thresholds = { ...DEFAULT_THRESHOLDS, ...analysisInput.thresholds };
+  const languageAnalysis = LANGUAGE_ANALYZERS.find((analyzer) => analyzer.supports(analysisInput))?.analyze(
+    analysisInput
+  );
 
   // 1. Detect anti-patterns
   for (const ap of ANTI_PATTERNS) {
@@ -236,31 +233,37 @@ export function analyzeCode(code: string): AnalysisResult {
     while (match !== null) {
       const lineNum = code.substring(0, match.index).split('\n').length;
 
-      // Avoid duplicate issues at the same line for the same rule
-      const existingIssue = issues.find((i) => i.rule === ap.rule && i.line === lineNum);
-      if (!existingIssue) {
-        issues.push({
-          type: ap.type,
-          rule: ap.rule,
-          message: ap.message,
-          line: lineNum,
-          suggestion: ap.suggestion,
-        });
-      }
+      addIssue(issues, {
+        type: ap.type,
+        rule: ap.rule,
+        message: ap.message,
+        line: lineNum,
+        suggestion: ap.suggestion,
+      });
       match = regex.exec(code);
     }
   }
 
   // 2. Analyze method/class lengths
-  const methodLengths = analyzeMethodLengths(code);
-  const classLengths = analyzeClassLengths(code);
+  if (languageAnalysis) {
+    for (const issue of languageAnalysis.issues) {
+      addIssue(issues, issue);
+    }
+  }
+
+  const methodLengths = languageAnalysis?.methodLengths.length
+    ? languageAnalysis.methodLengths
+    : analyzeMethodLengths(code);
+  const classLengths = languageAnalysis?.classLengths.length
+    ? languageAnalysis.classLengths
+    : analyzeClassLengths(code);
 
   for (const method of methodLengths) {
-    if (method.lines > 20) {
-      issues.push({
+    if (method.lines > thresholds.maxMethodLines) {
+      addIssue(issues, {
         type: 'WARNING',
         rule: 'max-method-lines',
-        message: `Method "${method.name}" is ${method.lines} lines (max: 20)`,
+        message: `Method "${method.name}" is ${method.lines} lines (max: ${thresholds.maxMethodLines})`,
         line: method.startLine,
         suggestion: 'Extract smaller methods with single responsibilities',
       });
@@ -268,11 +271,11 @@ export function analyzeCode(code: string): AnalysisResult {
   }
 
   for (const cls of classLengths) {
-    if (cls.lines > 200) {
-      issues.push({
+    if (cls.lines > thresholds.maxClassLines) {
+      addIssue(issues, {
         type: 'WARNING',
         rule: 'max-class-lines',
-        message: `Class "${cls.name}" is ${cls.lines} lines (max: 200)`,
+        message: `Class "${cls.name}" is ${cls.lines} lines (max: ${thresholds.maxClassLines})`,
         line: cls.startLine,
         suggestion: 'Split into smaller, focused classes',
       });
@@ -283,8 +286,8 @@ export function analyzeCode(code: string): AnalysisResult {
   const hasImplementation = /class\s+\w+|function\s+\w+|const\s+\w+\s*=\s*(?:async\s*)?\(/.test(code);
   const hasTests = /@Test|describe\s*\(|it\s*\(|test\s*\(|#\[test\]/.test(code);
 
-  if (hasImplementation && !hasTests) {
-    issues.push({
+  if (analysisInput.requireTests !== false && hasImplementation && !hasTests) {
+    addIssue(issues, {
       type: 'CRITICAL',
       rule: 'missing-tests',
       message: 'No tests found - TDD requires tests before implementation',
@@ -297,7 +300,7 @@ export function analyzeCode(code: string): AnalysisResult {
   const hasInterfaces = /interface\s+\w+|type\s+\w+\s*=/.test(code);
 
   if (hasClasses && !hasInterfaces) {
-    issues.push({
+    addIssue(issues, {
       type: 'WARNING',
       rule: 'missing-interfaces',
       message: 'No interfaces found - use interfaces for dependency injection',
@@ -306,7 +309,7 @@ export function analyzeCode(code: string): AnalysisResult {
   }
 
   // 5. Calculate metrics
-  const metrics = calculateMetrics(code, lines, methodLengths, classLengths);
+  const metrics = calculateMetrics(code, lines, methodLengths, classLengths, languageAnalysis?.metrics);
 
   // 6. Calculate score
   const score = calculateScore(code, issues);
@@ -456,7 +459,8 @@ function calculateMetrics(
   code: string,
   lines: string[],
   methodLengths: Array<{ name: string; lines: number; startLine: number }>,
-  classLengths: Array<{ name: string; lines: number; startLine: number }>
+  classLengths: Array<{ name: string; lines: number; startLine: number }>,
+  analyzerMetrics?: LanguageAnalysis['metrics']
 ): CodeMetrics {
   // Count comment lines (simple heuristic)
   const commentLines = lines.filter((l) => {
@@ -478,14 +482,14 @@ function calculateMetrics(
     totalLines: lines.length,
     codeLines: lines.length - commentLines - emptyLines,
     commentLines,
-    methodCount: methodLengths.length,
-    classCount: classLengths.length,
-    interfaceCount: (code.match(/interface\s+\w+/g) || []).length,
-    testCount: (code.match(/@Test|it\s*\(|test\s*\(|describe\s*\(/g) || []).length,
+    methodCount: analyzerMetrics?.methodCount ?? methodLengths.length,
+    classCount: analyzerMetrics?.classCount ?? classLengths.length,
+    interfaceCount: analyzerMetrics?.interfaceCount ?? (code.match(/interface\s+\w+|type\s+\w+\s*=/g) || []).length,
+    testCount: analyzerMetrics?.testCount ?? (code.match(/@Test|it\s*\(|test\s*\(|describe\s*\(/g) || []).length,
     maxMethodLines: Math.max(...methodLengths.map((m) => m.lines), 0),
     maxClassLines: Math.max(...classLengths.map((c) => c.lines), 0),
     customErrorCount: (code.match(/class\s+\w*Error|class\s+\w*Exception/g) || []).length,
-    importCount: (code.match(/^import\s+|^from\s+\w+\s+import/gm) || []).length,
+    importCount: analyzerMetrics?.importCount ?? (code.match(/^import\s+|^from\s+\w+\s+import/gm) || []).length,
   };
 }
 

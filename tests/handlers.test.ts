@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handleToolCall } from '../src/tools.js';
+import { handleToolCall } from '../src/tools/index.js';
 
 describe('Tool Handlers Integration (Simplified API)', () => {
   describe('get_context (PRIMARY)', () => {
@@ -8,7 +8,7 @@ describe('Tool Handlers Integration (Simplified API)', () => {
         task: 'Create a payment service',
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toContain('Context for:');
@@ -36,11 +36,25 @@ describe('Tool Handlers Integration (Simplified API)', () => {
   describe('validate', () => {
     it('should return validation criteria for code', async () => {
       const result = await handleToolCall('validate', {
-        code: 'public class UserService { }',
+        code: `
+          describe('UserService', () => {
+            it('creates a service', () => {});
+          });
+
+          interface UserService {
+            findUser(id: string): User;
+          }
+
+          class UserServiceImpl implements UserService {
+            findUser(id: string): User {
+              return { id };
+            }
+          }
+        `,
       });
 
-      expect(result.isError).toBeUndefined();
-      expect(result.content[0].text).toContain('Validation');
+      expect(result.isError).toBeFalsy();
+      expect(result.content[0].text).toContain('Code Analysis Results');
       expect(result.content[0].text).toContain('Thresholds');
     });
 
