@@ -67,13 +67,13 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "p-retry": "^8.0.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.1.1",
     "@vitest/coverage-v8": "^4.1.9",
     "dependency-cruiser": "^18.0.0",
     "tsx": "^4.23.0",
