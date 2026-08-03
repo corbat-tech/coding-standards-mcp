@@ -65,7 +65,7 @@
     "assets"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "p-retry": "^8.0.0",
     "typescript": "^6.0.3",
     "yaml": "^2.9.0",
