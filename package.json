@@ -76,7 +76,7 @@
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.9",
     "dependency-cruiser": "^18.0.0",
-    "tsx": "^4.23.0",
+    "tsx": "^4.23.12",
     "vitest": "^4.1.9"
   }
 }
